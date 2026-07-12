@@ -1,0 +1,51 @@
+◇ injected env (1) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+Cleaning previous booking test data...
+Seed records found.
+Camera: cmrbwvrub00059gu36kh6ch4q
+Microscope: cmrbwvrv600089gu3st8pl7hn
+Student 1: cmrbwvrtp00039gu38vzhl0wy
+Student 2: cmrbwvrtw00049gu3p7ygf72o
+
+====================================
+TEST 1 — Valid booking should be accepted as PENDING
+HTTP Status: 201
+Decision: BOOKING_ACCEPTED_AS_PENDING
+Message: N/A
+Booking ID: cmrdapgrk0000wku30xxascq5
+
+====================================
+TEST 2 — Overlapping booking should be rejected
+HTTP Status: 409
+Decision: N/A
+Message: Booking conflict: this equipment is already booked during the requested time.
+Booking ID: N/A
+
+====================================
+TEST 3 — Adjacent booking should be accepted
+HTTP Status: 201
+Decision: BOOKING_ACCEPTED_AS_PENDING
+Message: N/A
+Booking ID: cmrdapgt40002wku3vdsjbvsa
+
+====================================
+TEST 4 — Invalid time should be rejected
+HTTP Status: 400
+Decision: N/A
+Message: startTime must be before endTime.
+Booking ID: N/A
+
+====================================
+TEST 5 — Maintenance equipment should be rejected
+HTTP Status: 409
+Decision: N/A
+Message: Equipment is not bookable because status is UNDER_MAINTENANCE.
+Booking ID: N/A
+
+====================================
+Expected result summary:
+TEST 1: 201 accepted
+TEST 2: 409 rejected because overlap
+TEST 3: 201 accepted because adjacent time is allowed
+TEST 4: 400 rejected because startTime >= endTime
+TEST 5: 409 rejected because equipment is under maintenance
+====================================

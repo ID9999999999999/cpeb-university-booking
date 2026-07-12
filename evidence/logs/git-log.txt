@@ -1,0 +1,25 @@
+* 36d2525 (HEAD -> main, origin/main) Update evidence git log after README polish
+* 05e74fb Polish README for GitHub preparation
+* dd56e2f Add backend environment example
+* 6bf31cc Update evidence git log after screenshots
+* f63c20b Add screenshots evidence
+* fccbb52 Update final evidence git log
+* af7d59c Add audit logs test evidence
+* 5c81254 Add repair tickets test evidence
+* 2ae6ea3 Add maintenance booking block test evidence
+* 85177c5 Add maintenance endpoints test evidence
+* cd3ee82 Add equipment endpoints test evidence
+* fa40c5b Add approval flow test evidence
+* f4b5ce0 Add booking kernel test evidence
+* 4eec64a Add backend build evidence
+* 3193716 Add git log evidence
+* f958622 Add backend evidence summary
+* 1f91a50 Update project README
+* 9c8af79 Add audit log endpoints
+* 954a668 Add repair ticket endpoints
+* 84fe13e Add maintenance booking block tests
+* 2840f11 Add maintenance endpoints
+* c5b6b4c Add equipment endpoint tests
+* 8e53c51 Add equipment endpoints
+* f6fcea7 Add role checks for booking approval flow
+* 02ce136 Initial backend core with booking and approval flow

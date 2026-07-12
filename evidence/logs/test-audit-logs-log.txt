@@ -1,0 +1,26 @@
+=== Audit Logs Endpoints Test ===
+
+TEST 1 — List audit logs
+HTTP: 200
+Count: 30
+First AuditLog ID: cmrddjcba000320u3h6gcmm5c
+Action: REPAIR_TICKET_STATUS_UPDATED
+Entity Type: REPAIR_TICKET
+
+TEST 2 — Get one audit log by id
+HTTP: 200
+Action: REPAIR_TICKET_STATUS_UPDATED
+
+TEST 3 — Unknown audit log should fail
+HTTP: 404
+Message: Audit log not found.
+
+TEST 4 — List audit logs by equipment id
+HTTP: 200
+Equipment Audit Count: 2
+
+TEST 5 — List audit logs by booking id
+HTTP: 200
+Booking Audit Count: 1
+
+✅ Audit log endpoint tests passed successfully.

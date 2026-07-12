@@ -1,0 +1,25 @@
+=== Equipment Endpoints Test ===
+
+TEST 1 — List equipment
+HTTP: 200
+Count: 16
+
+TEST 2 — Get one equipment by id
+HTTP: 200
+Name: Repair Ticket Test Equipment
+
+TEST 3 — Create equipment
+HTTP: 201
+Decision: EQUIPMENT_CREATED
+Inventory tag: TEST-1783589575902
+
+TEST 4 — Duplicate inventoryTag should fail
+HTTP: 409
+Message: Equipment inventoryTag already exists.
+
+TEST 5 — Update equipment status
+HTTP: 200
+Decision: EQUIPMENT_STATUS_UPDATED
+New status: UNDER_MAINTENANCE
+
+✅ Equipment endpoint tests passed successfully.

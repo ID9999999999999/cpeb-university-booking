@@ -1,0 +1,36 @@
+◇ injected env (1) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+=== Maintenance Booking Block Test ===
+Test equipment created: cmrdc8zqp0000w4u3086qb9as
+Scheduled maintenance created: cmrdc8zr60001w4u3zvo0ax6j
+
+====================================
+TEST 1 — Overlapping booking should be rejected by SCHEDULED maintenance
+HTTP Status: 409
+Decision: N/A
+Message: Equipment is blocked by overlapping maintenance.
+Booking ID: N/A
+
+====================================
+TEST 2 — Adjacent booking after maintenance should be accepted
+HTTP Status: 201
+Decision: BOOKING_ACCEPTED_AS_PENDING
+Message: N/A
+Booking ID: cmrdc8zv2000gwku3e5nmsfpc
+Active maintenance created: cmrdc8zvh0003w4u3bhm4uocp
+
+====================================
+TEST 3 — Overlapping booking should be rejected by ACTIVE maintenance
+HTTP Status: 409
+Decision: N/A
+Message: Equipment is blocked by overlapping maintenance.
+Booking ID: N/A
+Completed maintenance created: cmrdc8zw10005w4u3i1hfe3n6
+
+====================================
+TEST 4 — COMPLETED maintenance should not block booking
+HTTP Status: 201
+Decision: BOOKING_ACCEPTED_AS_PENDING
+Message: N/A
+Booking ID: cmrdc8zwf000iwku37wska19u
+
+✅ Maintenance booking block tests passed successfully.

@@ -1,0 +1,47 @@
+◇ injected env (1) from .env // tip: ⌘ override existing { override: true }
+=== Approval Flow Test ===
+Manager: manager@university.test
+Student: student1@university.test
+Equipment: Active Maintenance Blocking Test Equipment
+
+TEST 1 — Create booking for approval
+HTTP: 201
+Decision: BOOKING_ACCEPTED_AS_PENDING
+
+TEST 2 — Approve pending booking
+HTTP: 200
+Decision: BOOKING_APPROVED
+New status: APPROVED
+
+TEST 3 — Approve same booking again should fail
+HTTP: 409
+Message: Booking cannot be approved because its status is APPROVED.
+
+TEST 4 — Create booking for rejection
+HTTP: 201
+Decision: BOOKING_ACCEPTED_AS_PENDING
+
+TEST 5 — Reject pending booking
+HTTP: 200
+Decision: BOOKING_REJECTED
+New status: REJECTED
+
+TEST 6 — Reject same booking again should fail
+HTTP: 409
+Message: Booking cannot be rejected because its status is REJECTED.
+
+TEST 7 — Check audit logs
+┌─────────┬────────────────────┬────────────┬─────────────────────────────┬─────────────────────────────┐
+│ (index) │ action             │ entityType │ actorId                     │ equipmentId                 │
+├─────────┼────────────────────┼────────────┼─────────────────────────────┼─────────────────────────────┤
+│ 0       │ 'BOOKING_REJECTED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrd62xsk0002r4u34omd3zvo' │
+│ 1       │ 'BOOKING_APPROVED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrd62xsk0002r4u34omd3zvo' │
+│ 2       │ 'BOOKING_REJECTED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrd62xsk0002r4u34omd3zvo' │
+│ 3       │ 'BOOKING_APPROVED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrd62xsk0002r4u34omd3zvo' │
+│ 4       │ 'BOOKING_REJECTED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrbwvrub00059gu36kh6ch4q' │
+│ 5       │ 'BOOKING_APPROVED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrbwvrub00059gu36kh6ch4q' │
+│ 6       │ 'BOOKING_REJECTED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrbwvrub00059gu36kh6ch4q' │
+│ 7       │ 'BOOKING_APPROVED' │ 'BOOKING'  │ 'cmrbwvrt000019gu3spz9d0t0' │ 'cmrbwvrub00059gu36kh6ch4q' │
+└─────────┴────────────────────┴────────────┴─────────────────────────────┴─────────────────────────────┘
+
+✅ Approval Flow tests passed successfully.

@@ -1,0 +1,39 @@
+=== Repair Tickets Endpoints Test ===
+
+TEST 1 — Create test equipment
+HTTP: 201
+Equipment ID: cmrddjc6c000020u3fsa16ymr
+
+TEST 2 — List repair tickets
+HTTP: 200
+Count: 2
+
+TEST 3 — Create repair ticket
+HTTP: 201
+Decision: REPAIR_TICKET_CREATED
+Repair Ticket ID: cmrddjc98000120u3sh7gqdw7
+Status: OPEN
+
+TEST 4 — Get one repair ticket by id
+HTTP: 200
+Title: Lens problem test
+
+TEST 5 — Unknown equipment should fail
+HTTP: 404
+Message: Equipment not found.
+
+TEST 6 — Missing title should fail
+HTTP: 400
+Message: equipmentId and title are required.
+
+TEST 7 — Invalid status should fail
+HTTP: 400
+Message: Invalid repair ticket status.
+
+TEST 8 — Update repair ticket status
+HTTP: 200
+Decision: REPAIR_TICKET_STATUS_UPDATED
+New status: DIAGNOSING
+Diagnosis: Lens alignment issue detected.
+
+✅ Repair ticket endpoint tests passed successfully.

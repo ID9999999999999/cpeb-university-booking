@@ -1,0 +1,45 @@
+﻿# dependencies
+node_modules/
+
+# build outputs
+dist/
+build/
+# environment files
+.env
+.env.*
+!.env.example
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+# Prisma / local generated cache
+generated/
+# Local secrets and machine-specific files
+local.properties
+google-services.json
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+# Dependencies and generated output
+.gradle/
+.kotlin/
+coverage/
+out/
+target/
+bin/
+obj/
+# Historical local backups
+*.bak
+*.before-*
+*.zip
+UB-template-check/
+apps/android/ub_v3_assets/

@@ -1,0 +1,38 @@
+=== Maintenance Endpoints Test ===
+
+TEST 1 — Create test equipment
+HTTP: 201
+Equipment ID: cmrdbb93n000cwku3nlgdaxl6
+
+TEST 2 — List maintenance records
+HTTP: 200
+Count: 9
+
+TEST 3 — Create maintenance record
+HTTP: 201
+Decision: MAINTENANCE_CREATED
+Maintenance ID: cmrdbb956000dwku33vdfp2y2
+Status: SCHEDULED
+
+TEST 4 — Get one maintenance record by id
+HTTP: 200
+Title: Scheduled maintenance test
+
+TEST 5 — Invalid maintenance time should fail
+HTTP: 400
+Message: startTime must be before endTime.
+
+TEST 6 — Unknown equipment should fail
+HTTP: 404
+Message: Equipment not found.
+
+TEST 7 — Invalid maintenance status should fail
+HTTP: 400
+Message: Invalid maintenance status.
+
+TEST 8 — Update maintenance status
+HTTP: 200
+Decision: MAINTENANCE_STATUS_UPDATED
+New status: ACTIVE
+
+✅ Maintenance endpoint tests passed successfully.
