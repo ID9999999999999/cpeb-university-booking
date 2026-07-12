@@ -264,14 +264,3 @@ Legend:
 - ❌ Final security review
 - ❌ Final release tag
 
-## Current Technical Stack
-
-| Layer | Technology |
-|---|---|
-| Backend | NestJS |
-| Database | PostgreSQL |
-| ORM | Prisma |
-| Mobile Application | Android, Kotlin, Jetpack Compose |
-| Version Control | Git and GitHub |
-
-## Repository Structure
