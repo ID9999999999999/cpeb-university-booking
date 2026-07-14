@@ -1,8 +1,21 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { EquipmentStatus } from '@prisma/client';
+
+import { Roles } from '../auth/roles.decorator';
+
 import { EquipmentService } from './equipment.service';
 
 @Controller('equipment')
+@UseGuards(AuthGuard('jwt'))
 export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
@@ -16,6 +29,7 @@ export class EquipmentController {
     return this.equipmentService.findOne(id);
   }
 
+  @Roles('ADMIN')
   @Post()
   createEquipment(@Body() body: any) {
     return this.equipmentService.createEquipment({
@@ -27,6 +41,7 @@ export class EquipmentController {
     });
   }
 
+  @Roles('ADMIN')
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() body: any) {
     return this.equipmentService.updateStatus({

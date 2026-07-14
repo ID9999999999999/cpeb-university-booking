@@ -1,7 +1,20 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+import { Roles } from '../auth/roles.decorator';
+
 import { BookingsService } from './bookings.service';
 
 @Controller('bookings')
+@UseGuards(AuthGuard('jwt'))
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
@@ -21,6 +34,7 @@ export class BookingsController {
     });
   }
 
+  @Roles('ADMIN')
   @Patch(':id/approve')
   approveBooking(@Param('id') id: string, @Body() body: any) {
     return this.bookingsService.approveBooking({
@@ -29,6 +43,7 @@ export class BookingsController {
     });
   }
 
+  @Roles('ADMIN')
   @Patch(':id/reject')
   rejectBooking(@Param('id') id: string, @Body() body: any) {
     return this.bookingsService.rejectBooking({

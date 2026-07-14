@@ -7,6 +7,7 @@ import { EquipmentModule } from './equipment/equipment.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { RepairTicketsModule } from './repair-tickets/repair-tickets.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     MaintenanceModule,
     RepairTicketsModule,
     AuditLogsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
