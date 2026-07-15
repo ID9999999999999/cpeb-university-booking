@@ -27,11 +27,9 @@ export class EquipmentService {
 
   async findAll() {
     return this.prisma.equipment.findMany({
-      orderBy: [
-        { category: 'asc' },
-        { name: 'asc' },
-        { inventoryTag: 'asc' },
-      ],
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
 

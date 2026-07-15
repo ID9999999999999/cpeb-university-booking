@@ -1,3 +1,38 @@
+﻿param(
+  [string]$Root = "C:\Users\YASSER\Desktop\CPEB_UNIFIED_PROJECT\CODES"
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+function Step([string]$m) { Write-Host "`n=== $m ===" -ForegroundColor Cyan }
+function Need([string]$p) { if (!(Test-Path -LiteralPath $p)) { throw "Missing: $p" } }
+function WriteUtf8([string]$p,[string]$c) {
+  New-Item -ItemType Directory -Force -Path (Split-Path $p -Parent) | Out-Null
+  [IO.File]::WriteAllText($p,$c,[Text.UTF8Encoding]::new($false))
+}
+
+$api = Join-Path $Root "apps\api"
+$android = Join-Path $Root "apps\android"
+$app = Join-Path $android "app\src\main\java\com\yasser\ub\real\CpebRealApp.kt"
+$service = Join-Path $api "src\equipment\equipment.service.ts"
+
+Need $app
+Need $service
+
+$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$backup = Join-Path $Root "backups\PRODUCT_ENHANCEMENT_$stamp"
+New-Item -ItemType Directory -Force -Path $backup | Out-Null
+Copy-Item $app (Join-Path $backup "CpebRealApp.kt")
+Copy-Item $service (Join-Path $backup "equipment.service.ts")
+
+Step "Creating Git branch"
+Push-Location $Root
+try { git checkout -b "product-enhancement-$stamp" }
+finally { Pop-Location }
+
+Step "Writing enhanced real Android application"
+$kotlin = @'
 package com.yasser.ub.real
 
 import android.app.DatePickerDialog
@@ -673,3 +708,55 @@ private fun Profile(name: String, api: String, onLogout: () -> Unit) {
     Text(text, color = Color.Gray, modifier = Modifier.fillMaxWidth().padding(24.dp))
   }
 }
+'@
+
+WriteUtf8 $app $kotlin
+
+Step "Improving backend equipment ordering"
+$source = Get-Content -LiteralPath $service -Raw
+$pattern = 'return this\.prisma\.equipment\.findMany\(\{\s*orderBy:\s*\{\s*createdAt:\s*''desc'',?\s*\},?\s*\}\);'
+$replacement = @'
+return this.prisma.equipment.findMany({
+      orderBy: [
+        { category: 'asc' },
+        { name: 'asc' },
+        { inventoryTag: 'asc' },
+      ],
+    });
+'@
+if ([regex]::IsMatch($source, $pattern)) {
+  $source = [regex]::Replace($source, $pattern, $replacement, 1)
+  WriteUtf8 $service $source
+} else {
+  Write-Host "Ordering block differs; backend file preserved." -ForegroundColor Yellow
+}
+
+Step "Building backend"
+Push-Location $api
+try {
+  npm.cmd run build
+  if ($LASTEXITCODE -ne 0) { throw "Backend build failed." }
+}
+finally { Pop-Location }
+
+Step "Building Android APK"
+Push-Location $android
+try {
+  .\gradlew.bat assembleDebug
+  if ($LASTEXITCODE -ne 0) { throw "Android build failed." }
+}
+finally { Pop-Location }
+
+Step "Committing successful enhancement"
+Push-Location $Root
+try {
+  git add .
+  git commit -m "Enhance real booking product UI and flows"
+}
+finally { Pop-Location }
+
+$apk = Join-Path $android "app\build\outputs\apk\debug\app-debug.apk"
+Write-Host "`nSUCCESS" -ForegroundColor Green
+Write-Host "Backup: $backup"
+Write-Host "APK: $apk"
+Write-Host "Original premium UI remains untouched."

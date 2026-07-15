@@ -1,3 +1,43 @@
+﻿param(
+  [string]$Root = "C:\Users\YASSER\Desktop\CPEB_UNIFIED_PROJECT\CODES"
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+function Step([string]$m) {
+  Write-Host "`n=== $m ===" -ForegroundColor Cyan
+}
+
+function WriteUtf8([string]$path, [string]$content) {
+  [System.IO.File]::WriteAllText(
+    $path,
+    $content,
+    [System.Text.UTF8Encoding]::new($false)
+  )
+}
+
+$api = Join-Path $Root "apps\api"
+$android = Join-Path $Root "apps\android"
+$schemaPath = Join-Path $api "prisma\schema.prisma"
+$bookingPath = Join-Path $api "src\bookings\bookings.service.ts"
+
+if (!(Test-Path $api)) { throw "API folder not found: $api" }
+if (!(Test-Path $android)) { throw "Android folder not found: $android" }
+if (!(Test-Path $bookingPath)) { throw "Bookings service not found: $bookingPath" }
+
+$stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+$backup = Join-Path $Root "backups\PRISMA_SCHEMA_REPAIR_$stamp"
+New-Item -ItemType Directory -Force -Path $backup | Out-Null
+
+if (Test-Path $schemaPath) {
+  Copy-Item $schemaPath (Join-Path $backup "schema.prisma")
+}
+Copy-Item $bookingPath (Join-Path $backup "bookings.service.ts")
+
+Step "Restoring valid Prisma schema"
+
+$schema = @'
 generator client {
   provider = "prisma-client-js"
 }
@@ -75,10 +115,10 @@ model Equipment {
   status       EquipmentStatus @default(AVAILABLE)
   description  String?
 
-  bookings           Booking[]
-  maintenanceRecords MaintenanceRecord[]
-  repairTickets      RepairTicket[]
-  auditLogs          AuditLog[]
+  bookings            Booking[]
+  maintenanceRecords  MaintenanceRecord[]
+  repairTickets       RepairTicket[]
+  auditLogs           AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -96,8 +136,8 @@ model Booking {
   status      BookingStatus @default(PENDING)
   reason      String?
 
-  equipment Equipment  @relation(fields: [equipmentId], references: [id])
-  user      User       @relation(fields: [userId], references: [id])
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
@@ -171,3 +211,75 @@ model AuditLog {
   @@index([bookingId])
   @@index([action])
 }
+'@
+
+WriteUtf8 $schemaPath $schema
+
+Step "Repairing TypeScript enum comparisons"
+
+$booking = Get-Content -LiteralPath $bookingPath -Raw
+
+$booking = $booking.Replace(
+  "[EquipmentStatus.UNDER_MAINTENANCE,EquipmentStatus.LOST,EquipmentStatus.RETIRED].includes(eq.status)",
+  "(eq.status === EquipmentStatus.UNDER_MAINTENANCE || eq.status === EquipmentStatus.LOST || eq.status === EquipmentStatus.RETIRED)"
+)
+
+$booking = $booking.Replace(
+  "![BookingStatus.PENDING,BookingStatus.APPROVED].includes(x.status)",
+  "(x.status !== BookingStatus.PENDING && x.status !== BookingStatus.APPROVED)"
+)
+
+$booking = $booking.Replace(
+  "[BookingStatus.CANCELLED,BookingStatus.REJECTED,BookingStatus.CLOSED].includes(x.status)",
+  "(x.status === BookingStatus.CANCELLED || x.status === BookingStatus.REJECTED || x.status === BookingStatus.CLOSED)"
+)
+
+WriteUtf8 $bookingPath $booking
+
+Step "Running Prisma from API folder"
+
+Push-Location $api
+try {
+  npx.cmd prisma format --schema ".\prisma\schema.prisma"
+  if ($LASTEXITCODE -ne 0) { throw "prisma format failed" }
+
+  npx.cmd prisma db push --schema ".\prisma\schema.prisma"
+  if ($LASTEXITCODE -ne 0) { throw "prisma db push failed" }
+
+  npx.cmd prisma generate --schema ".\prisma\schema.prisma"
+  if ($LASTEXITCODE -ne 0) { throw "prisma generate failed" }
+
+  npm.cmd run build
+  if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
+}
+finally {
+  Pop-Location
+}
+
+Step "Building Android"
+
+Push-Location $android
+try {
+  .\gradlew.bat assembleDebug
+  if ($LASTEXITCODE -ne 0) { throw "Android build failed" }
+}
+finally {
+  Pop-Location
+}
+
+Step "Saving repaired state"
+
+Push-Location $Root
+try {
+  git add .
+  git commit -m "Repair Prisma schema and enhancement build"
+}
+finally {
+  Pop-Location
+}
+
+$apk = Join-Path $android "app\build\outputs\apk\debug\app-debug.apk"
+
+Write-Host "`nSUCCESS" -ForegroundColor Green
+Write-Host "Backup: $backup"
+Write-Host "APK: $apk"
