@@ -1,55 +1,13 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-
-import { Roles } from '../auth/roles.decorator';
-
-import { BookingsService } from './bookings.service';
-
-@Controller('bookings')
-@UseGuards(AuthGuard('jwt'))
-export class BookingsController {
-  constructor(private readonly bookingsService: BookingsService) {}
-
-  @Get()
-  findAll() {
-    return this.bookingsService.findAll();
-  }
-
-  @Post()
-  createBooking(@Body() body: any) {
-    return this.bookingsService.createBooking({
-      equipmentId: body.equipmentId,
-      userId: body.userId,
-      startTime: body.startTime,
-      endTime: body.endTime,
-      reason: body.reason,
-    });
-  }
-
-  @Roles('ADMIN')
-  @Patch(':id/approve')
-  approveBooking(@Param('id') id: string, @Body() body: any) {
-    return this.bookingsService.approveBooking({
-      bookingId: id,
-      actorId: body.actorId,
-    });
-  }
-
-  @Roles('ADMIN')
-  @Patch(':id/reject')
-  rejectBooking(@Param('id') id: string, @Body() body: any) {
-    return this.bookingsService.rejectBooking({
-      bookingId: id,
-      actorId: body.actorId,
-      reason: body.reason,
-    });
-  }
+import {Body,Controller,Get,Param,Patch,Post,Query,Request,UseGuards} from '@nestjs/common';
+import {AuthGuard} from '@nestjs/passport';
+import {BookingsService} from './bookings.service';
+@Controller('bookings') @UseGuards(AuthGuard('jwt'))
+export class BookingsController{
+ constructor(private readonly s:BookingsService){}
+ private uid(r:any){return r.user?.userId??r.user?.id??r.user?.sub}
+ @Get('mine') mine(@Request()r:any){return this.s.mine(this.uid(r))}
+ @Get('availability') availability(@Query('equipmentId') equipmentId:string,@Query('startTime') startTime:string,@Query('endTime') endTime:string){return this.s.availability({equipmentId,startTime,endTime})}
+ @Post() create(@Request()r:any,@Body()b:any){return this.s.create({equipmentId:b.equipmentId,userId:this.uid(r),startTime:b.startTime,endTime:b.endTime,reason:b.reason})}
+ @Patch(':id/cancel') cancel(@Request()r:any,@Param('id')id:string){return this.s.cancel(id,this.uid(r))}
+ @Patch(':id/finish') finish(@Request()r:any,@Param('id')id:string){return this.s.finish(id,this.uid(r))}
 }

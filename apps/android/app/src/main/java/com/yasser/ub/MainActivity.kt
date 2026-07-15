@@ -1,15 +1,6 @@
-﻿package com.yasser.ub
-
+package com.yasser.ub
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.yasser.ub.ubpremium.UbCampusBookingApp
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            UbCampusBookingApp()
-        }
-    }
-}
+import com.yasser.ub.real.CpebRealApp
+class MainActivity:ComponentActivity(){override fun onCreate(b:Bundle?){super.onCreate(b);setContent{CpebRealApp()}}}
