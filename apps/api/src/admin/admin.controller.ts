@@ -1,10 +1,11 @@
-import { Body,Controller,Get,Param,Patch,Post,Query,Request,UseGuards } from '@nestjs/common';
+﻿import { Body,Controller,Get,Param,Patch,Post,Query,Request,UseGuards } from '@nestjs/common';
 import { BookingStatus,EquipmentStatus,MaintenanceStatus,RepairTicketStatus,UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { AdminService } from './admin.service';
 @Controller('admin')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN,UserRole.LAB_MANAGER,UserRole.TECHNICIAN)
 export class AdminController {
  constructor(private readonly s:AdminService){}

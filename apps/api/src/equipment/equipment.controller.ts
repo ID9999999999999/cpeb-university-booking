@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Get,
@@ -11,11 +11,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { EquipmentStatus } from '@prisma/client';
 
 import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 import { EquipmentService } from './equipment.service';
 
 @Controller('equipment')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
