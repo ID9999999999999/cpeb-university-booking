@@ -32,7 +32,7 @@ private val Orange = Color(0xFFF59E0B)
 private val Red = Color(0xFFE5484D)
 private val Bg = Color(0xFFF4F7FC)
 
-private enum class Screen { LOGIN, REGISTER, HOME, RESOURCES, DETAILS, BOOK, BOOKINGS, REPORTS, PROFILE }
+private enum class Screen { LOGIN, REGISTER, VERIFY, HOME, RESOURCES, DETAILS, BOOK, BOOKINGS, REPORTS, PROFILE }
 
 @Composable
 fun CpebRealApp() {
@@ -48,6 +48,7 @@ fun CpebRealApp() {
   var bookings by remember { mutableStateOf<List<BookingDto>>(emptyList()) }
   var reports by remember { mutableStateOf<List<ReportDto>>(emptyList()) }
   var selected by remember { mutableStateOf<EquipmentDto?>(null) }
+  var pendingEmail by remember { mutableStateOf("") }
 
   fun auth() = session.bearer()
   fun readable(t: Throwable) = when (t) {
@@ -78,7 +79,7 @@ fun CpebRealApp() {
     Scaffold(
       containerColor = Bg,
       bottomBar = {
-        if (screen !in listOf(Screen.LOGIN, Screen.REGISTER)) {
+        if (screen !in listOf(Screen.LOGIN, Screen.REGISTER, Screen.VERIFY)) {
           NavigationBar {
             listOf(
               Screen.HOME to "Home",
@@ -132,9 +133,31 @@ fun CpebRealApp() {
                 error = ""
                 try {
                   val r = ApiFactory.api.register(RegisterBody(name.trim(), email.trim(), password))
+                  pendingEmail = r.email
+                  notice = r.message
+                  screen = Screen.VERIFY
+                } catch (t: Throwable) {
+                  error = readable(t)
+                } finally {
+                  loading = false
+                }
+              }
+            }
+          )
+
+          Screen.VERIFY -> VerifyEmail(
+            email = pendingEmail,
+            loading = loading,
+            error = error,
+            onVerify = { code ->
+              scope.launch {
+                loading = true
+                error = ""
+                try {
+                  val r = ApiFactory.api.verifyEmail(VerifyEmailBody(pendingEmail, code))
                   session.token = r.accessToken
                   session.name = r.user.fullName
-                  notice = "Account created"
+                  notice = "Email verified"
                   screen = Screen.HOME
                   refresh()
                 } catch (t: Throwable) {
@@ -143,6 +166,25 @@ fun CpebRealApp() {
                   loading = false
                 }
               }
+            },
+            onResend = {
+              scope.launch {
+                loading = true
+                error = ""
+                try {
+                  val r = ApiFactory.api.resendVerification(ResendVerificationBody(pendingEmail))
+                  notice = r.message
+                } catch (t: Throwable) {
+                  error = readable(t)
+                } finally {
+                  loading = false
+                }
+              }
+            },
+            onBack = {
+              error = ""
+              pendingEmail = ""
+              screen = Screen.LOGIN
             }
           )
 
@@ -258,7 +300,7 @@ fun CpebRealApp() {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
               CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
               Spacer(Modifier.width(8.dp))
-              Text("Working…")
+              Text("WorkingÃ¢â‚¬Â¦")
             }
           }
         }
@@ -311,7 +353,7 @@ private fun Login(loading: Boolean, error: String, onLogin: (String, String) -> 
       { onLogin(email, password) },
       enabled = !loading && email.contains("@") && password.isNotBlank(),
       modifier = Modifier.fillMaxWidth()
-    ) { Text(if (loading) "Signing in…" else "Sign in") }
+    ) { Text(if (loading) "Signing inÃ¢â‚¬Â¦" else "Sign in") }
     TextButton(onRegister, modifier = Modifier.align(Alignment.CenterHorizontally)) {
       Text("Create student account")
     }
@@ -343,12 +385,52 @@ private fun Register(loading: Boolean, error: String, onBack: () -> Unit, onCrea
     if (confirm.isNotBlank() && password != confirm) ErrorText("Passwords do not match.")
     if (error.isNotBlank()) ErrorText(error)
     Button({ onCreate(name, email, password) }, enabled = !loading && valid, modifier = Modifier.fillMaxWidth()) {
-      Text(if (loading) "Creating…" else "Create account")
+      Text(if (loading) "CreatingÃ¢â‚¬Â¦" else "Create account")
     }
     OutlinedButton(onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
   }
 }
 
+@Composable
+private fun VerifyEmail(
+  email: String,
+  loading: Boolean,
+  error: String,
+  onVerify: (String) -> Unit,
+  onResend: () -> Unit,
+  onBack: () -> Unit
+) {
+  var code by remember { mutableStateOf("") }
+  val cleanCode = code.filter { it.isDigit() }.take(6)
+
+  Page("Verify your email", "A six-digit code was sent to $email") {
+    OutlinedTextField(
+      value = cleanCode,
+      onValueChange = { code = it.filter(Char::isDigit).take(6) },
+      label = { Text("Verification code") },
+      singleLine = true,
+      modifier = Modifier.fillMaxWidth()
+    )
+    if (error.isNotBlank()) ErrorText(error)
+    Button(
+      onClick = { onVerify(cleanCode) },
+      enabled = !loading && cleanCode.length == 6,
+      modifier = Modifier.fillMaxWidth()
+    ) {
+      Text(if (loading) "VerifyingÃ¢â‚¬Â¦" else "Verify and continue")
+    }
+    OutlinedButton(
+      onClick = onResend,
+      enabled = !loading,
+      modifier = Modifier.fillMaxWidth()
+    ) {
+      Text("Resend code")
+    }
+    TextButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
+      Text("Back to sign in")
+    }
+  }
+}
 @Composable
 private fun Home(
   name: String,
@@ -369,7 +451,7 @@ private fun Home(
       Metric("Reports", reports.size, Red, Modifier.weight(1f), onReports)
     }
     Button(onResources, modifier = Modifier.fillMaxWidth()) { Text("Browse classified resources") }
-    OutlinedButton(onRefresh, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "Refreshing…" else "Refresh") }
+    OutlinedButton(onRefresh, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "RefreshingÃ¢â‚¬Â¦" else "Refresh") }
     if (error.isNotBlank()) ErrorText(error)
   }
 }
@@ -416,7 +498,7 @@ private fun Resources(resources: List<EquipmentDto>, onOpen: (EquipmentDto) -> U
             Text(e.name, color = Navy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
             Status(e.status, if (e.status == "AVAILABLE") Green else Orange)
           }
-          Text("${e.category} • ${e.inventoryTag}", color = Color.Gray)
+          Text("${e.category} Ã¢â‚¬Â¢ ${e.inventoryTag}", color = Color.Gray)
           Text(e.location ?: "University campus")
           e.description?.let { Text(it) }
         }
@@ -427,7 +509,7 @@ private fun Resources(resources: List<EquipmentDto>, onOpen: (EquipmentDto) -> U
 
 @Composable
 private fun Details(resource: EquipmentDto, onBack: () -> Unit, onBook: () -> Unit, onReport: () -> Unit) {
-  Page(resource.name, "${resource.category} • ${resource.inventoryTag}") {
+  Page(resource.name, "${resource.category} Ã¢â‚¬Â¢ ${resource.inventoryTag}") {
     Info("Details", listOf(
       "Location: ${resource.location ?: "University campus"}",
       "Status: ${resource.status}",
@@ -490,14 +572,14 @@ private fun Book(
     if (!review) {
       Button({ review = true }, enabled = valid && !loading, modifier = Modifier.fillMaxWidth()) { Text("Review booking") }
     } else {
-      Info("Confirm", listOf("Date: $date", "Time: $start → $end", "Duration: $minutes minutes", "Purpose: $reason"))
+      Info("Confirm", listOf("Date: $date", "Time: $start Ã¢â€ â€™ $end", "Duration: $minutes minutes", "Purpose: $reason"))
       Button({
         onSubmit(
           s!!.atZone(ZoneId.systemDefault()).toInstant().toString(),
           e!!.atZone(ZoneId.systemDefault()).toInstant().toString(),
           reason.trim()
         )
-      }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "Checking…" else "Confirm and book") }
+      }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "CheckingÃ¢â‚¬Â¦" else "Confirm and book") }
       OutlinedButton({ review = false }, modifier = Modifier.fillMaxWidth()) { Text("Edit") }
     }
     TextButton(onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
@@ -533,7 +615,7 @@ private fun Bookings(
         }
       }
     }
-    item { OutlinedButton(onRefresh) { Text(if (loading) "Refreshing…" else "Refresh") } }
+    item { OutlinedButton(onRefresh) { Text(if (loading) "RefreshingÃ¢â‚¬Â¦" else "Refresh") } }
     if (error.isNotBlank()) item { ErrorText(error) }
     if (filtered.isEmpty()) item { Empty("No bookings in this section.") }
     else items(filtered, key = { it.id }) { b ->
@@ -543,7 +625,7 @@ private fun Bookings(
             Text(b.equipment.name, color = Navy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
             Status(b.status, if (b.status in listOf("APPROVED", "CHECKED_OUT")) Green else Orange)
           }
-          Text("${b.startTime} → ${b.endTime}")
+          Text("${b.startTime} Ã¢â€ â€™ ${b.endTime}")
           b.reason?.let { Text("Purpose: $it") }
           Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (b.status in listOf("PENDING", "APPROVED")) OutlinedButton({ action = "cancel" to b.id }) { Text("Cancel") }
@@ -615,7 +697,7 @@ private fun Reports(
         }
       }
     }
-    item { OutlinedButton(onRefresh) { Text(if (loading) "Refreshing…" else "Refresh reports") } }
+    item { OutlinedButton(onRefresh) { Text(if (loading) "RefreshingÃ¢â‚¬Â¦" else "Refresh reports") } }
     if (error.isNotBlank()) item { ErrorText(error) }
     if (reports.isEmpty()) item { Empty("No reports have been submitted.") }
     else items(reports, key = { it.id }) { r ->
@@ -653,7 +735,7 @@ private fun Profile(name: String, api: String, onLogout: () -> Unit) {
   Card(shape = RoundedCornerShape(18.dp)) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
       Text(title, color = Navy, fontWeight = FontWeight.Black)
-      lines.forEach { Text("• $it") }
+      lines.forEach { Text("Ã¢â‚¬Â¢ $it") }
     }
   }
 }

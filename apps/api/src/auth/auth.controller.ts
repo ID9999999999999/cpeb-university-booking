@@ -25,6 +25,16 @@ export class AuthController {
     return this.authService.register(body);
   }
 
+  @Post('verify-email')
+  verifyEmail(@Body() body: { email: string; code: string }) {
+    return this.authService.verifyEmail(body);
+  }
+
+  @Post('resend-verification')
+  resendVerification(@Body() body: { email: string }) {
+    return this.authService.resendVerification(body);
+  }
+
   @Post('login')
   login(
     @Body()
