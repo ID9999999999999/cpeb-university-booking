@@ -1,0 +1,990 @@
+{
+    "report":  {
+                   "name":  "CPEB Project Audit",
+                   "generatedAt":  "2026-07-16T15:35:21.0848145+08:00",
+                   "root":  "C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES",
+                   "readOnlyAudit":  true,
+                   "skipBuild":  false,
+                   "skipRuntimeTests":  false
+               },
+    "interpretation":  {
+                           "warning":  "Verified check completion is not the same as total product completion.",
+                           "completeMeans":  "The specific check passed or the artifact was found.",
+                           "partialMeans":  "Some evidence exists, but completion is not fully proven.",
+                           "missingMeans":  "The expected artifact or feature was not found by this audit.",
+                           "failedMeans":  "An executed build or runtime check failed.",
+                           "unknownMeans":  "The check was skipped or could not be determined automatically."
+                       },
+    "summary":  {
+                    "counts":  {
+                                   "COMPLETE":  61,
+                                   "PARTIAL":  4,
+                                   "MISSING":  1,
+                                   "FAILED":  0,
+                                   "UNKNOWN":  0
+                               },
+                    "verifiedCheckCompletionPercent":  92.4
+                },
+    "findings":  [
+                     {
+                         "Area":  "Project Structure",
+                         "Item":  "Backend application",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Project Structure",
+                         "Item":  "Android application",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\android",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Project Structure",
+                         "Item":  "Backend package.json",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\package.json",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Project Structure",
+                         "Item":  "Prisma schema",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\prisma\\schema.prisma",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Project Structure",
+                         "Item":  "Nest AppModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\src\\app.module.ts",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Project Structure",
+                         "Item":  "Android Gradle wrapper",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\android\\gradlew.bat",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Git",
+                         "Item":  "Repository detected",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Git root: C:/Users/YASSER/Desktop/CPEB_UNIFIED_PROJECT/CODES",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Git",
+                         "Item":  "Current branch",
+                         "Status":  "INFO",
+                         "Evidence":  "admin-operations-20260716_000021",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Git",
+                         "Item":  "Latest commit",
+                         "Status":  "INFO",
+                         "Evidence":  "4524603c4dcb6fe4f387f3ef9da94642194daec5|4524603|Fix admin authorization guard order|2026-07-16T14:18:43+08:00",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Git",
+                         "Item":  "Tracked working tree",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "No tracked source changes. Untracked entries: 10.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Git",
+                         "Item":  "Untracked files",
+                         "Status":  "INFO",
+                         "Evidence":  "?? CPEB_ADMIN_AND_OPERATIONS.ps1; ?? CPEB_ADMIN_FINAL_REPAIR.ps1; ?? CPEB_ENGINEERING_REPAIR_AND_VALIDATE.ps1; ?? CPEB_PROJECT_AUDIT.json; ?? CPEB_PROJECT_AUDIT.md; ?? CPEB_PROJECT_AUDIT.ps1; ?? backups/ADMIN_FINAL_REPAIR_20260716_012349/; ?? backups/ADMIN_FINAL_REPAIR_20260716_013042/; ?? backups/ADMIN_OPERATIONS_20260716_000021/; ?? evidence/project-audit/",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Structure",
+                         "Item":  "Nest modules",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "9 module file(s): app.module.ts, admin.module.ts, audit-logs.module.ts, auth.module.ts, bookings.module.ts, equipment.module.ts, maintenance.module.ts, prisma.module.ts, repair-tickets.module.ts",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Structure",
+                         "Item":  "Controllers",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "8 controller file(s).",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Structure",
+                         "Item":  "Services",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "9 service file(s).",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "AuthModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "AdminModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "BookingsModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "EquipmentModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "MaintenanceModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "RepairTicketsModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "AuditLogsModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Backend Modules",
+                         "Item":  "PrismaModule",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Registered or imported in app.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "API Routes",
+                         "Item":  "Declared routes",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "43 route declaration(s) found.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "POST /auth/register",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "POST /auth/login",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /auth/me",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /bookings/mine",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /bookings/availability",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "POST /bookings",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /equipment",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/dashboard",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/users",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/bookings",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/equipment",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/reports",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/maintenance",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Expected API Routes",
+                         "Item":  "GET /admin/audit",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Route declared.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authentication",
+                         "Item":  "JWT guard",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\src\\auth\\jwt-auth.guard.ts",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authentication",
+                         "Item":  "JWT strategy",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\src\\auth\\jwt.strategy.ts",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authorization",
+                         "Item":  "Roles guard",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\src\\auth\\roles.guard.ts",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authorization",
+                         "Item":  "Roles decorator",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\src\\auth\\roles.decorator.ts",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authorization",
+                         "Item":  "Admin guard order",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "JwtAuthGuard runs before RolesGuard.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authorization",
+                         "Item":  "Admin role metadata",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "@Roles metadata exists on AdminController or its handlers.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Authorization",
+                         "Item":  "Global RolesGuard ordering risk",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "No global RolesGuard registration detected in auth.module.ts.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Schema",
+                         "Item":  "Prisma models",
+                         "Status":  "INFO",
+                         "Evidence":  "6 model(s): User, Equipment, Booking, MaintenanceRecord, RepairTicket, AuditLog",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Schema",
+                         "Item":  "Prisma enums",
+                         "Status":  "INFO",
+                         "Evidence":  "5 enum(s): UserRole, EquipmentStatus, BookingStatus, MaintenanceStatus, RepairTicketStatus",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Models",
+                         "Item":  "User",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Model exists in schema.prisma.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Models",
+                         "Item":  "Equipment",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Model exists in schema.prisma.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Models",
+                         "Item":  "Booking",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Model exists in schema.prisma.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Models",
+                         "Item":  "Maintenance",
+                         "Status":  "MISSING",
+                         "Evidence":  "Model not found.",
+                         "Remaining":  "Add the model if required by project scope."
+                     },
+                     {
+                         "Area":  "Database Models",
+                         "Item":  "RepairTicket",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Model exists in schema.prisma.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Models",
+                         "Item":  "AuditLog",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Model exists in schema.prisma.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Schema",
+                         "Item":  "Prisma migrations",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "1 migration directory/directories found.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Database Runtime",
+                         "Item":  "DATABASE_URL",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "DATABASE_URL=\"postgresql://postgres:***@localhost:5432/university_equipment_booking?schema=public\"",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Static Completeness",
+                         "Item":  "TODO/FIXME/not-implemented markers",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "No matching markers found in scanned TypeScript/Kotlin/Java source.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Testing",
+                         "Item":  "Backend test files",
+                         "Status":  "PARTIAL",
+                         "Evidence":  "3 test-related file(s) found.",
+                         "Remaining":  "Passing tests must still be verified."
+                     },
+                     {
+                         "Area":  "Testing",
+                         "Item":  "Android test files",
+                         "Status":  "PARTIAL",
+                         "Evidence":  "2 Android test file(s) found.",
+                         "Remaining":  "Passing tests must still be verified."
+                     },
+                     {
+                         "Area":  "Android",
+                         "Item":  "Kotlin/Java source",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "9 Kotlin/Java source file(s) found.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Android",
+                         "Item":  "AndroidManifest.xml",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "Exists: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\android\\app\\src\\main\\AndroidManifest.xml",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Android",
+                         "Item":  "Screens/ViewModels inventory",
+                         "Status":  "INFO",
+                         "Evidence":  "1 screen, fragment, activity or ViewModel file(s): MainActivity.kt",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Android Integration",
+                         "Item":  "Backend API references",
+                         "Status":  "PARTIAL",
+                         "Evidence":  "5 network/API reference(s) found.",
+                         "Remaining":  "Runtime verification is still required."
+                     },
+                     {
+                         "Area":  "Build",
+                         "Item":  "Backend build",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "npm run build exited with code 0.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Build",
+                         "Item":  "Android debug APK build",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "gradlew.bat assembleDebug exited with code 0.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Artifacts",
+                         "Item":  "Backend compiled entry point",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\dist\\src\\main.js",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Artifacts",
+                         "Item":  "Android APK",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "1 APK file(s). Latest: C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Runtime",
+                         "Item":  "API port 3000",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "localhost:3000 accepts TCP connections.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Runtime",
+                         "Item":  "PostgreSQL port 5432",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "localhost:5432 accepts TCP connections.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Runtime",
+                         "Item":  "GET /health",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "{\"status\":\"ok\",\"service\":\"university-equipment-booking-api\",\"timestamp\":\"2026-07-16T07:35:19.504Z\"}",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Runtime",
+                         "Item":  "GET /db-health",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "{\"status\":\"ok\",\"database\":\"connected\",\"provider\":\"postgresql\",\"timestamp\":\"2026-07-16T07:35:20.033Z\"}",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Runtime",
+                         "Item":  "Admin login",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "JWT access token returned for the audit admin account.",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Runtime",
+                         "Item":  "Admin dashboard authorization",
+                         "Status":  "COMPLETE",
+                         "Evidence":  "{\"generatedAt\":\"2026-07-16T07:35:21.000Z\",\"users\":{\"total\":6,\"active\":6},\"equipment\":{\"total\":22,\"available\":18},\"bookings\":{\"pending\":4,\"active\":1},\"reports\":{\"open\":3},\"maintenance\":{\"active\":10}}",
+                         "Remaining":  ""
+                     },
+                     {
+                         "Area":  "Documentation",
+                         "Item":  "README documentation",
+                         "Status":  "PARTIAL",
+                         "Evidence":  "C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\README.md; C:\\Users\\YASSER\\Desktop\\CPEB_UNIFIED_PROJECT\\CODES\\apps\\api\\README.md",
+                         "Remaining":  "Review documentation completeness and accuracy."
+                     },
+                     {
+                         "Area":  "Documentation",
+                         "Item":  "Project docs directory",
+                         "Status":  "INFO",
+                         "Evidence":  "7 documentation file(s) found.",
+                         "Remaining":  ""
+                     }
+                 ],
+    "routeInventory":  [
+                           {
+                               "Controller":  "app.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "app.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/health",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "app.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/db-health",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/dashboard",
+                               "Roles":  "UserRole.ADMIN,UserRole.LAB_MANAGER,UserRole.TECHNICIAN",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/users",
+                               "Roles":  "UserRole.ADMIN",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/users/:id",
+                               "Roles":  "UserRole.ADMIN",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/bookings",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/bookings/:id/approve",
+                               "Roles":  "UserRole.ADMIN,UserRole.LAB_MANAGER",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/bookings/:id/reject",
+                               "Roles":  "UserRole.ADMIN,UserRole.LAB_MANAGER",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/bookings/:id/check-out",
+                               "Roles":  "UserRole.ADMIN,UserRole.LAB_MANAGER",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/bookings/:id/close",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/equipment",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/admin/equipment",
+                               "Roles":  "UserRole.ADMIN,UserRole.LAB_MANAGER",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/equipment/:id/status",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/reports",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/reports/:id/status",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/reports/:id/assign",
+                               "Roles":  "UserRole.ADMIN,UserRole.LAB_MANAGER",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/maintenance",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/admin/maintenance",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/admin/maintenance/:id/status",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "admin.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/admin/audit",
+                               "Roles":  "UserRole.ADMIN",
+                               "Guards":  "JwtAuthGuard, RolesGuard"
+                           },
+                           {
+                               "Controller":  "audit-logs.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/audit-logs",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "audit-logs.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/audit-logs/:id",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "audit-logs.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/audit-logs/equipment/:equipmentId",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "audit-logs.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/audit-logs/booking/:bookingId",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "auth.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/auth/register",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "auth.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/auth/login",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "auth.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/auth/me",
+                               "Roles":  "",
+                               "Guards":  "JwtAuthGuard"
+                           },
+                           {
+                               "Controller":  "bookings.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/bookings/mine",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "bookings.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/bookings/availability",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "bookings.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/bookings",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "bookings.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/bookings/:id/cancel",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "bookings.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/bookings/:id/finish",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "equipment.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/equipment",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "equipment.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/equipment/:id",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "equipment.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/equipment",
+                               "Roles":  "\u0027ADMIN\u0027",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "equipment.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/equipment/:id/status",
+                               "Roles":  "\u0027ADMIN\u0027",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "maintenance.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/maintenance",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "maintenance.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/maintenance/:id",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "maintenance.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/maintenance",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "maintenance.controller.ts",
+                               "Method":  "PATCH",
+                               "Route":  "/maintenance/:id/status",
+                               "Roles":  "",
+                               "Guards":  ""
+                           },
+                           {
+                               "Controller":  "repair-tickets.controller.ts",
+                               "Method":  "GET",
+                               "Route":  "/repair-tickets/mine",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           },
+                           {
+                               "Controller":  "repair-tickets.controller.ts",
+                               "Method":  "POST",
+                               "Route":  "/repair-tickets",
+                               "Roles":  "",
+                               "Guards":  "AuthGuard(\u0027jwt\u0027"
+                           }
+                       ],
+    "prismaModels":  [
+                         "User",
+                         "Equipment",
+                         "Booking",
+                         "MaintenanceRecord",
+                         "RepairTicket",
+                         "AuditLog"
+                     ],
+    "prismaEnums":  [
+                        "UserRole",
+                        "EquipmentStatus",
+                        "BookingStatus",
+                        "MaintenanceStatus",
+                        "RepairTicketStatus"
+                    ],
+    "incompleteMarkers":  [
+
+                          ],
+    "backendTestFiles":  [
+                             "apps\\api\\src\\app.controller.spec.ts",
+                             "apps\\api\\test\\app.e2e-spec.ts",
+                             "apps\\api\\test\\jest-e2e.json"
+                         ],
+    "androidTestFiles":  [
+                             "apps\\android\\app\\src\\androidTest\\java\\com\\yasser\\ub\\ExampleInstrumentedTest.kt",
+                             "apps\\android\\app\\src\\test\\java\\com\\yasser\\ub\\ExampleUnitTest.kt"
+                         ],
+    "androidSourceFiles":  [
+                               "apps\\android\\app\\src\\androidTest\\java\\com\\yasser\\ub\\ExampleInstrumentedTest.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\MainActivity.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\real\\CpebRealApp.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\real\\RealApi.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\ubpremium\\UbCampusBookingApp.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\ui\\theme\\Color.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\ui\\theme\\Theme.kt",
+                               "apps\\android\\app\\src\\main\\java\\com\\yasser\\ub\\ui\\theme\\Type.kt",
+                               "apps\\android\\app\\src\\test\\java\\com\\yasser\\ub\\ExampleUnitTest.kt"
+                           ],
+    "commands":  [
+                     {
+                         "Name":  "Git repository root",
+                         "Succeeded":  true,
+                         "ExitCode":  0,
+                         "Output":  [
+                                        "C:/Users/YASSER/Desktop/CPEB_UNIFIED_PROJECT/CODES"
+                                    ]
+                     },
+                     {
+                         "Name":  "Current Git branch",
+                         "Succeeded":  true,
+                         "ExitCode":  0,
+                         "Output":  [
+                                        "admin-operations-20260716_000021"
+                                    ]
+                     },
+                     {
+                         "Name":  "Current commit",
+                         "Succeeded":  true,
+                         "ExitCode":  0,
+                         "Output":  [
+                                        "4524603c4dcb6fe4f387f3ef9da94642194daec5|4524603|Fix admin authorization guard order|2026-07-16T14:18:43+08:00"
+                                    ]
+                     },
+                     {
+                         "Name":  "Git working tree",
+                         "Succeeded":  true,
+                         "ExitCode":  0,
+                         "Output":  [
+                                        "?? CPEB_ADMIN_AND_OPERATIONS.ps1",
+                                        "?? CPEB_ADMIN_FINAL_REPAIR.ps1",
+                                        "?? CPEB_ENGINEERING_REPAIR_AND_VALIDATE.ps1",
+                                        "?? CPEB_PROJECT_AUDIT.json",
+                                        "?? CPEB_PROJECT_AUDIT.md",
+                                        "?? CPEB_PROJECT_AUDIT.ps1",
+                                        "?? backups/ADMIN_FINAL_REPAIR_20260716_012349/",
+                                        "?? backups/ADMIN_FINAL_REPAIR_20260716_013042/",
+                                        "?? backups/ADMIN_OPERATIONS_20260716_000021/",
+                                        "?? evidence/project-audit/"
+                                    ]
+                     },
+                     {
+                         "Name":  "Backend build",
+                         "Succeeded":  true,
+                         "ExitCode":  0,
+                         "Output":  [
+                                        "",
+                                        "\u003e api@0.0.1 build",
+                                        "\u003e nest build",
+                                        ""
+                                    ]
+                     },
+                     {
+                         "Name":  "Android assembleDebug",
+                         "Succeeded":  true,
+                         "ExitCode":  0,
+                         "Output":  [
+                                        "Reusing configuration cache.",
+                                        "\u003e Task :app:preBuild UP-TO-DATE",
+                                        "\u003e Task :app:preDebugBuild UP-TO-DATE",
+                                        "\u003e Task :app:mergeDebugNativeDebugMetadata NO-SOURCE",
+                                        "\u003e Task :app:generateDebugResources UP-TO-DATE",
+                                        "\u003e Task :app:generateDebugAssets UP-TO-DATE",
+                                        "\u003e Task :app:javaPreCompileDebug UP-TO-DATE",
+                                        "\u003e Task :app:generateDebugGlobalSynthetics UP-TO-DATE",
+                                        "\u003e Task :app:packageDebugResources UP-TO-DATE",
+                                        "\u003e Task :app:desugarDebugFileDependencies UP-TO-DATE",
+                                        "\u003e Task :app:checkDebugDuplicateClasses UP-TO-DATE",
+                                        "\u003e Task :app:mergeDebugAssets UP-TO-DATE",
+                                        "\u003e Task :app:checkDebugAarMetadata UP-TO-DATE",
+                                        "\u003e Task :app:mergeExtDexDebug UP-TO-DATE",
+                                        "\u003e Task :app:processDebugNavigationResources UP-TO-DATE",
+                                        "\u003e Task :app:mergeLibDexDebug UP-TO-DATE",
+                                        "\u003e Task :app:mapDebugSourceSetPaths UP-TO-DATE",
+                                        "\u003e Task :app:parseDebugLocalResources UP-TO-DATE",
+                                        "\u003e Task :app:compressDebugAssets UP-TO-DATE",
+                                        "\u003e Task :app:compileDebugNavigationResources UP-TO-DATE",
+                                        "\u003e Task :app:generateDebugRFile UP-TO-DATE",
+                                        "\u003e Task :app:createDebugCompatibleScreenManifests UP-TO-DATE",
+                                        "\u003e Task :app:extractDeepLinksDebug UP-TO-DATE",
+                                        "\u003e Task :app:mergeDebugJniLibFolders UP-TO-DATE",
+                                        "\u003e Task :app:mergeDebugResources UP-TO-DATE",
+                                        "\u003e Task :app:validateSigningDebug UP-TO-DATE",
+                                        "\u003e Task :app:mergeDebugNativeLibs UP-TO-DATE",
+                                        "\u003e Task :app:writeDebugAppMetadata UP-TO-DATE",
+                                        "\u003e Task :app:writeDebugSigningConfigVersions UP-TO-DATE",
+                                        "\u003e Task :app:stripDebugDebugSymbols UP-TO-DATE",
+                                        "\u003e Task :app:processDebugMainManifest UP-TO-DATE",
+                                        "\u003e Task :app:processDebugManifest UP-TO-DATE",
+                                        "\u003e Task :app:processDebugManifestForPackage UP-TO-DATE",
+                                        "\u003e Task :app:compileDebugKotlin UP-TO-DATE",
+                                        "\u003e Task :app:compileDebugJavaWithJavac NO-SOURCE",
+                                        "\u003e Task :app:processDebugJavaRes UP-TO-DATE",
+                                        "\u003e Task :app:processDebugResources UP-TO-DATE",
+                                        "\u003e Task :app:mergeDebugJavaResource UP-TO-DATE",
+                                        "\u003e Task :app:dexBuilderDebug UP-TO-DATE",
+                                        "\u003e Task :app:mergeProjectDexDebug UP-TO-DATE",
+                                        "\u003e Task :app:packageDebug UP-TO-DATE",
+                                        "\u003e Task :app:assembleDebug UP-TO-DATE",
+                                        "\u003e Task :app:createDebugApkListingFileRedirect UP-TO-DATE",
+                                        "",
+                                        "BUILD SUCCESSFUL in 2s",
+                                        "36 actionable tasks: 36 up-to-date",
+                                        "Configuration cache entry reused."
+                                    ]
+                     }
+                 ]
+}

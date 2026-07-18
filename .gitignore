@@ -43,3 +43,8 @@ obj/
 *.zip
 UB-template-check/
 apps/android/ub_v3_assets/
+
+# Local generated backups
+backups/
+CPEB_REGISTRATION_INPUT.txt
+CPEB_*DIAGNOSTIC*.txt
