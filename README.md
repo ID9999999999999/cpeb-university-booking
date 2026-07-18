@@ -2,7 +2,6 @@
 
 [![CPEB CI-CD](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml/badge.svg?branch=main&event=push)](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml)
 
-
 A university equipment and resource booking system built with **NestJS**, **Prisma**, **PostgreSQL**, and **Android Jetpack Compose**.
 
 The project provides an academic booking workflow for students and university staff, including authentication, equipment management, booking validation, maintenance management, repair tickets, administrative operations, and audit tracking.
@@ -11,167 +10,167 @@ The project provides an academic booking workflow for students and university st
 
 ### Project Foundation
 
-- âœ… Project scope and problem definition
-- âœ… Core business rule: no overlapping active bookings for the same equipment
-- âœ… Public GitHub repository
-- âœ… Clean monorepository structure
-- âœ… Backend and Android applications stored in one repository
-- âœ… Environment example file
-- âœ… Sensitive local files excluded from Git
+- ✅ Project scope and problem definition
+- ✅ Core business rule: no overlapping active bookings for the same equipment
+- ✅ Public GitHub repository
+- ✅ Clean monorepository structure
+- ✅ Backend and Android applications stored in one repository
+- ✅ Environment example file
+- ✅ Sensitive local files excluded from Git
 
-### Backend â€” NestJS
+### Backend — NestJS
 
-- âœ… NestJS REST API
-- âœ… PostgreSQL connection
-- âœ… Prisma ORM integration
-- âœ… Health endpoint
-- âœ… Database health endpoint
-- âœ… Authentication module
-- âœ… Equipment module
-- âœ… Booking module
-- âœ… Administrative module
-- âœ… Maintenance module
-- âœ… Repair-ticket module
-- âœ… Audit-log module
+- ✅ NestJS REST API
+- ✅ PostgreSQL connection
+- ✅ Prisma ORM integration
+- ✅ Health endpoint
+- ✅ Database health endpoint
+- ✅ Authentication module
+- ✅ Equipment module
+- ✅ Booking module
+- ✅ Administrative module
+- ✅ Maintenance module
+- ✅ Repair-ticket module
+- ✅ Audit-log module
 
 ### Authentication and User Management
 
-- âœ… Real user registration
-- âœ… Email-verification workflow
-- âœ… Verification-code resend endpoint
-- âœ… Real user login
-- âœ… Password hashing with bcrypt
-- âœ… JWT authentication
-- âœ… Authenticated user-profile endpoint
-- âœ… User roles stored in the database
-- âœ… Role-based administrative access
-- âœ… Administrative user and role management
+- ✅ Real user registration
+- ✅ Email-verification workflow
+- ✅ Verification-code resend endpoint
+- ✅ Real user login
+- ✅ Password hashing with bcrypt
+- ✅ JWT authentication
+- ✅ Authenticated user-profile endpoint
+- ✅ User roles stored in the database
+- ✅ Role-based administrative access
+- ✅ Administrative user and role management
 
-### Database â€” Prisma and PostgreSQL
+### Database — Prisma and PostgreSQL
 
-- âœ… User model
-- âœ… Equipment model
-- âœ… Booking model
-- âœ… MaintenanceRecord model
-- âœ… RepairTicket model
-- âœ… AuditLog model
-- âœ… Core enums
-- âœ… User-role enum
-- âœ… Initial migration
-- âœ… Seed data
-- âœ… Demo users
-- âœ… Administrative user
-- âœ… Demo equipment
+- ✅ User model
+- ✅ Equipment model
+- ✅ Booking model
+- ✅ MaintenanceRecord model
+- ✅ RepairTicket model
+- ✅ AuditLog model
+- ✅ Core enums
+- ✅ User-role enum
+- ✅ Initial migration
+- ✅ Seed data
+- ✅ Demo users
+- ✅ Administrative user
+- ✅ Demo equipment
 
 ### Equipment Management
 
-- âœ… List equipment
-- âœ… Get one equipment item
-- âœ… Create equipment
-- âœ… Reject duplicate inventory tags
-- âœ… Update equipment status
-- âœ… Filter administrative equipment data
-- âœ… Record equipment-status changes in audit logs
+- ✅ List equipment
+- ✅ Get one equipment item
+- ✅ Create equipment
+- ✅ Reject duplicate inventory tags
+- ✅ Update equipment status
+- ✅ Filter administrative equipment data
+- ✅ Record equipment-status changes in audit logs
 
 ### Booking System
 
-- âœ… Create booking requests
-- âœ… Validate booking time intervals
-- âœ… Check equipment availability
-- âœ… Reject unknown equipment
-- âœ… Reject unknown or inactive users
-- âœ… Reject non-bookable equipment
-- âœ… Reject overlapping bookings
-- âœ… Allow adjacent bookings
-- âœ… Display the authenticated user's booking history
-- âœ… Cancel bookings
-- âœ… Finish bookings
-- âœ… Approve pending bookings
-- âœ… Reject pending bookings
-- âœ… Administrative check-out and closing operations
-- âœ… Prevent repeated approval or rejection
-- âœ… Restrict administrative booking actions by role
-- âœ… Record booking actions in audit logs
+- ✅ Create booking requests
+- ✅ Validate booking time intervals
+- ✅ Check equipment availability
+- ✅ Reject unknown equipment
+- ✅ Reject unknown or inactive users
+- ✅ Reject non-bookable equipment
+- ✅ Reject overlapping bookings
+- ✅ Allow adjacent bookings
+- ✅ Display the authenticated user's booking history
+- ✅ Cancel bookings
+- ✅ Finish bookings
+- ✅ Approve pending bookings
+- ✅ Reject pending bookings
+- ✅ Administrative check-out and closing operations
+- ✅ Prevent repeated approval or rejection
+- ✅ Restrict administrative booking actions by role
+- ✅ Record booking actions in audit logs
 
 ### Maintenance
 
-- âœ… List maintenance records
-- âœ… Get one maintenance record
-- âœ… Create maintenance records
-- âœ… Validate maintenance intervals
-- âœ… Validate maintenance status
-- âœ… Update maintenance status
-- âœ… Block bookings that overlap active or scheduled maintenance
-- âœ… Allow bookings after maintenance ends
-- âœ… Record maintenance actions in audit logs
+- ✅ List maintenance records
+- ✅ Get one maintenance record
+- ✅ Create maintenance records
+- ✅ Validate maintenance intervals
+- ✅ Validate maintenance status
+- ✅ Update maintenance status
+- ✅ Block bookings that overlap active or scheduled maintenance
+- ✅ Allow bookings after maintenance ends
+- ✅ Record maintenance actions in audit logs
 
 ### Repair Tickets
 
-- âœ… List repair tickets
-- âœ… Get one repair ticket
-- âœ… Create repair tickets
-- âœ… Display the authenticated user's reports
-- âœ… Validate related equipment
-- âœ… Validate ticket titles
-- âœ… Assign technicians
-- âœ… Validate technician roles
-- âœ… Update repair-ticket status
-- âœ… Store diagnoses
-- âœ… Store evidence URLs
-- âœ… Record repair-ticket actions in audit logs
+- ✅ List repair tickets
+- ✅ Get one repair ticket
+- ✅ Create repair tickets
+- ✅ Display the authenticated user's reports
+- ✅ Validate related equipment
+- ✅ Validate ticket titles
+- ✅ Assign technicians
+- ✅ Validate technician roles
+- ✅ Update repair-ticket status
+- ✅ Store diagnoses
+- ✅ Store evidence URLs
+- ✅ Record repair-ticket actions in audit logs
 
 ### Audit Logs
 
-- âœ… List audit logs
-- âœ… Get one audit log
-- âœ… Filter logs by equipment
-- âœ… Filter logs by booking
-- âœ… Return related actor and resource data
-- âœ… Administrative audit access
+- ✅ List audit logs
+- ✅ Get one audit log
+- ✅ Filter logs by equipment
+- ✅ Filter logs by booking
+- ✅ Return related actor and resource data
+- ✅ Administrative audit access
 
 ### Android Application
 
-- âœ… Android project
-- âœ… Kotlin
-- âœ… Jetpack Compose
-- âœ… Material 3
-- âœ… Real connection to the NestJS API
-- âœ… Retrofit API client
-- âœ… Registration screen and backend registration
-- âœ… Email-verification screen
-- âœ… Login screen and backend authentication
-- âœ… JWT token storage
-- âœ… Persistent user session
-- âœ… Logout
-- âœ… Dashboard
-- âœ… Equipment list using real backend data
-- âœ… Equipment details
-- âœ… Availability checking
-- âœ… Real booking submission
-- âœ… User booking history
-- âœ… Booking cancellation
-- âœ… Booking completion
-- âœ… Repair-report submission
-- âœ… User repair-report history
-- âœ… Loading and API-error feedback
-- âœ… Main application navigation
-- âœ… Profile screen
-- âœ… Android visual assets
+- ✅ Android project
+- ✅ Kotlin
+- ✅ Jetpack Compose
+- ✅ Material 3
+- ✅ Real connection to the NestJS API
+- ✅ Retrofit API client
+- ✅ Registration screen and backend registration
+- ✅ Email-verification screen
+- ✅ Login screen and backend authentication
+- ✅ JWT token storage
+- ✅ Persistent user session
+- ✅ Logout
+- ✅ Dashboard
+- ✅ Equipment list using real backend data
+- ✅ Equipment details
+- ✅ Availability checking
+- ✅ Real booking submission
+- ✅ User booking history
+- ✅ Booking cancellation
+- ✅ Booking completion
+- ✅ Repair-report submission
+- ✅ User repair-report history
+- ✅ Loading and API-error feedback
+- ✅ Main application navigation
+- ✅ Profile screen
+- ✅ Android visual assets
 
 ### Testing and Evidence
 
-- âœ… Backend build verified
-- âœ… Booking-kernel test script
-- âœ… Approval-flow test script
-- âœ… Equipment-endpoint test script
-- âœ… Maintenance-endpoint test script
-- âœ… Maintenance-booking-block test script
-- âœ… Repair-ticket test script
-- âœ… Audit-log test script
-- âœ… Authentication flow verified
-- âœ… Test logs saved
-- âœ… Backend screenshots saved
-- âœ… Evidence folders organized
+- ✅ Backend build verified
+- ✅ Booking-kernel test script
+- ✅ Approval-flow test script
+- ✅ Equipment-endpoint test script
+- ✅ Maintenance-endpoint test script
+- ✅ Maintenance-booking-block test script
+- ✅ Repair-ticket test script
+- ✅ Audit-log test script
+- ✅ Authentication flow verified
+- ✅ Test logs saved
+- ✅ Backend screenshots saved
+- ✅ Evidence folders organized
 
 ## Current Technical Stack
 
@@ -191,8 +190,8 @@ The project provides an academic booking workflow for students and university st
 
 ```text
 apps/
-â”œâ”€â”€ api/                 NestJS backend
-â””â”€â”€ android/             Android Jetpack Compose application
+├── api/                 NestJS backend
+└── android/             Android Jetpack Compose application
 
 database/                Database-related resources
 docs/                    Project documentation
@@ -205,17 +204,17 @@ tests/                   Project verification resources
 
 ```text
 Register account
-      â†“
+      ↓
 Verify email address
-      â†“
+      ↓
 Log in and receive JWT
-      â†“
+      ↓
 Browse university equipment
-      â†“
+      ↓
 Check equipment availability
-      â†“
+      ↓
 Create and manage bookings
-      â†“
+      ↓
 Submit equipment repair reports
 ```
 
@@ -233,5 +232,3 @@ Yasser Idbouzkri
 ## License
 
 All rights reserved.
-
-<!-- refresh-readme-render -->
