@@ -1,18 +1,27 @@
-﻿# API Documentation
+# API Documentation
 
-## Available backend areas
+## Available Backend Areas
 
 - ✅ Health
 - ✅ Database health
+- ✅ Authentication
+- ✅ User profile
 - ✅ Equipment
 - ✅ Bookings
-- ✅ Approval and rejection
+- ✅ Booking approval and rejection
+- ✅ Administrative operations
 - ✅ Maintenance
 - ✅ Repair tickets
 - ✅ Audit logs
 
-## Documentation status
+## Documentation Status
 
-- ❌ Swagger / OpenAPI not implemented yet.
-- ❌ Postman collection not added yet.
-- ❌ API versioning not implemented yet.
+The REST API is implemented and actively used by the Android application.
+
+Remaining documentation work:
+
+- 🟡 Swagger / OpenAPI
+- 🟡 Postman collection
+- 🟡 API versioning
+
+These are finalization tasks and no longer blockers for the implemented Android-to-backend workflow.
