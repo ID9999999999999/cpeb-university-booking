@@ -14,14 +14,19 @@
 - ✅ Repair tickets
 - ✅ Audit logs
 
-## Documentation Status
+## Interactive OpenAPI Documentation
 
-The REST API is implemented and actively used by the Android application.
+Swagger / OpenAPI is enabled. When the API runs on the default port, open:
 
-Remaining documentation work:
+`http://localhost:3000/docs`
 
-- 🟡 Swagger / OpenAPI
+Bearer-token authorization is available in Swagger UI for protected routes.
+
+## Request Validation
+
+A global NestJS `ValidationPipe` is enabled with whitelist and transformation. DTO validation covers the main authentication, booking, equipment, maintenance, repair-ticket, and administrative request bodies, plus booking availability query input.
+
+## Remaining Documentation Work
+
 - 🟡 Postman collection
 - 🟡 API versioning
-
-These are finalization tasks and no longer blockers for the implemented Android-to-backend workflow.

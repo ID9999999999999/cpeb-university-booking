@@ -23,6 +23,8 @@
 - ✅ Maintenance-based booking blocking
 - ✅ Repair tickets
 - ✅ Audit logs
+- ✅ Swagger / OpenAPI interactive documentation
+- ✅ Global ValidationPipe and DTO request validation for main API inputs
 
 ### Authentication and Authorization
 - ✅ Real registration
@@ -70,10 +72,8 @@
 ## 🟡 Remaining / Improvement Work
 
 ### API Quality
-- 🟡 Add Swagger / OpenAPI
 - 🟡 Add Postman collection
 - 🟡 Add API versioning
-- 🟡 Add stronger global DTO/request validation
 - 🟡 Improve global error handling
 - 🟡 Improve structured logging
 
