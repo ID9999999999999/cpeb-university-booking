@@ -1,27 +1,38 @@
-﻿# Roadmap
+# Roadmap
 
-## Phase 1 — Foundation
+## Phase 1 — Foundation ✅
 
 - ✅ Project scope
 - ✅ Backend core
 - ✅ Database schema
 - ✅ Core booking rule
-- ✅ Evidence and public repository
-- ✅ Android prototype
+- ✅ Evidence structure
+- ✅ Public repository
+- ✅ Android application foundation
 
-## Phase 2 — Integration
+## Phase 2 — Integration ✅
 
-- ❌ Authentication
-- ❌ Android API client
-- ❌ Real booking workflow
-- ❌ Real user session
-- ❌ Swagger and Postman
-- ❌ CI checks
+- ✅ Registration and login
+- ✅ Email verification
+- ✅ JWT authentication
+- ✅ Android API client
+- ✅ Android-to-backend integration
+- ✅ Real booking workflow
+- ✅ Real user session
+- ✅ Equipment and booking management
+- ✅ Repair reporting
+- ✅ GitHub Actions CI
 
-## Phase 3 — Completion
+## Phase 3 — Finalization 🟡
 
-- ❌ Extended booking features
-- ❌ Reports and analytics
-- ❌ Security hardening
-- ❌ Deployment
-- ❌ Final report and presentation
+- 🟡 Swagger / OpenAPI
+- 🟡 Postman collection
+- 🟡 API versioning
+- 🟡 Stronger validation and error handling
+- 🟡 Security hardening
+- 🟡 Expanded automated tests
+- 🟡 Optional deployment
+- 🟡 Final report
+- 🟡 Final presentation
+- 🟡 Demonstration and defense preparation
+- 🟡 Final release

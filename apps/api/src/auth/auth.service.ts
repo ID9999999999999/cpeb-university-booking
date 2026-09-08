@@ -18,8 +18,45 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  private normalizeEmail(value: string) {
-    return value.trim().toLowerCase();
+  private requireString(value: unknown, message: string) {
+    if (typeof value !== 'string') {
+      throw new BadRequestException(message);
+    }
+
+    const normalized = value.trim();
+    if (!normalized) {
+      throw new BadRequestException(message);
+    }
+
+    return normalized;
+  }
+
+  private normalizeEmail(value: unknown) {
+    const email = this.requireString(value, 'Invalid email address').toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+$/.test(email)) {
+      throw new BadRequestException('Invalid email address');
+    }
+
+    return email;
+  }
+
+  private validatePassword(value: unknown) {
+    if (typeof value !== 'string' || value.length < 6) {
+      throw new BadRequestException('Invalid password');
+    }
+
+    return value;
+  }
+
+  private validateVerificationCode(value: unknown) {
+    const code = this.requireString(value, 'Invalid verification code');
+
+    if (!/^\d{6}$/.test(code)) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    return code;
   }
 
   private createCode() {
@@ -94,12 +131,16 @@ export class AuthService {
     email: string;
     password: string;
   }) {
-    const email = this.normalizeEmail(input.email);
-    const fullName = input.fullName.trim();
-
-    if (!fullName || !email || input.password.length < 6) {
+    if (!input || typeof input !== 'object') {
       throw new BadRequestException('Invalid registration information');
     }
+
+    const email = this.normalizeEmail(input.email);
+    const fullName = this.requireString(
+      input.fullName,
+      'Invalid registration information',
+    );
+    const password = this.validatePassword(input.password);
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
@@ -110,7 +151,7 @@ export class AuthService {
     }
 
     if (existingUser && !existingUser.emailVerified) {
-      const hashedPassword = await bcrypt.hash(input.password, 12);
+      const hashedPassword = await bcrypt.hash(password, 12);
       const user = await this.prisma.user.update({
         where: { id: existingUser.id },
         data: {
@@ -128,7 +169,7 @@ export class AuthService {
       };
     }
 
-    const hashedPassword = await bcrypt.hash(input.password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await this.prisma.user.create({
       data: {
@@ -156,8 +197,12 @@ export class AuthService {
   }
 
   async verifyEmail(input: { email: string; code: string }) {
+    if (!input || typeof input !== 'object') {
+      throw new BadRequestException('Invalid verification request');
+    }
+
     const email = this.normalizeEmail(input.email);
-    const code = input.code.trim();
+    const code = this.validateVerificationCode(input.code);
 
     const user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -192,6 +237,10 @@ export class AuthService {
   }
 
   async resendVerification(input: { email: string }) {
+    if (!input || typeof input !== 'object') {
+      throw new BadRequestException('Invalid verification request');
+    }
+
     const email = this.normalizeEmail(input.email);
     const user = await this.prisma.user.findUnique({ where: { email } });
 
@@ -208,7 +257,12 @@ export class AuthService {
   }
 
   async login(input: { email: string; password: string }) {
+    if (!input || typeof input !== 'object') {
+      throw new BadRequestException('Invalid login information');
+    }
+
     const email = this.normalizeEmail(input.email);
+    const password = this.validatePassword(input.password);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -219,7 +273,7 @@ export class AuthService {
     }
 
     const passwordIsValid = await bcrypt.compare(
-      input.password,
+      password,
       user.password,
     );
 
