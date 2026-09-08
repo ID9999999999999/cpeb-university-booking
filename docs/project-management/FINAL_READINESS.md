@@ -2,28 +2,30 @@
 
 ## Verified Working Baseline
 
-The current repository has a working backend and Android build baseline.
+The repository has a working backend and Android build baseline. Step 1 passed GitHub Actions on the pull request and after merge to `main`.
 
-The latest verified GitHub Actions run for the current repository state completed successfully for:
+## API Finalization Progress
 
-- Backend dependency installation
-- Prisma client generation
-- Database migrations
-- NestJS backend build
-- Backend unit tests
-- Android unit tests
-- Android debug APK build
-- Android APK artifact upload
+Step 2 adds:
+
+- Swagger / OpenAPI integration
+- Interactive Swagger UI at `/docs`
+- Bearer-token support in API documentation
+- Global NestJS ValidationPipe
+- DTO validation for the main authentication, booking, equipment, maintenance, repair-ticket, and administrative request bodies
+- DTO validation for booking availability query input
 
 ## Finalization Priorities
 
-1. Synchronize all project documentation with the real implementation.
-2. Add API documentation and request validation improvements.
-3. Expand automated testing and security checks.
-4. Prepare the academic submission package.
-5. Produce the final presentation, demo script, and defense material.
-6. Create the final release only after the final CI run succeeds.
+1. Verify Step 2 with backend tests/build and GitHub Actions.
+2. Expand automated testing and security checks where useful for the course scope.
+3. Prepare the academic submission package.
+4. Produce the final presentation, demo script, and defense material.
+5. Create the final tagged release only after the final CI run succeeds.
 
-## Important Note
+## Remaining API Improvements
 
-Older roadmap and status documents previously described authentication, Android integration, and CI as unfinished. Those statements were obsolete and have been corrected by this patch.
+- Postman collection
+- API versioning
+- Improved global error handling and structured logging
+- Optional rate limiting and broader security/E2E coverage
