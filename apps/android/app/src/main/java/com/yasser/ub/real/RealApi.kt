@@ -162,17 +162,20 @@ class Session(context: Context) {
 
     var token: String?
         get() = preferences.getString("token", null)
-        set(value) {
-            preferences.edit().putString("token", value).apply()
-        }
+        set(value) { preferences.edit().putString("token", value).apply() }
 
     var name: String?
         get() = preferences.getString("name", null)
+        set(value) { preferences.edit().putString("name", value).apply() }
+
+    var apiBaseUrl: String
+        get() = preferences.getString("api_base_url", BuildConfig.CPEB_API_BASE_URL) ?: BuildConfig.CPEB_API_BASE_URL
         set(value) {
-            preferences.edit().putString("name", value).apply()
+            val normalized = if (value.trim().endsWith("/")) value.trim() else "${value.trim()}/"
+            preferences.edit().putString("api_base_url", normalized).apply()
         }
 
-    fun clear() = preferences.edit().clear().apply()
+    fun clear() = preferences.edit().remove("token").remove("name").apply()
 
     fun bearer() = "Bearer ${token ?: ""}"
 }
@@ -181,11 +184,26 @@ object ApiFactory {
     val BASE_URL: String
         get() = BuildConfig.CPEB_API_BASE_URL
 
-    val api: RealApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(RealApi::class.java)
+    private var cachedBaseUrl: String? = null
+    private var cachedApi: RealApi? = null
+
+    fun api(baseUrl: String): RealApi {
+        val normalized = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
+        val current = cachedApi
+        if (current != null && cachedBaseUrl == normalized) return current
+        return synchronized(this) {
+            if (cachedApi == null || cachedBaseUrl != normalized) {
+                cachedBaseUrl = normalized
+                cachedApi = Retrofit.Builder()
+                    .baseUrl(normalized)
+                    .addConverterFactory(GsonConverterFactory.create())
+                    .build()
+                    .create(RealApi::class.java)
+            }
+            cachedApi!!
+        }
     }
+
+    val api: RealApi
+        get() = api(BASE_URL)
 }

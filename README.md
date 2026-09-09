@@ -1,4 +1,4 @@
-﻿> ## Android APK
+> ## Android APK
 > **[Download the latest Android APK](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest)**
 >
 > GitHub automatically builds and publishes the installable APK from the main branch.
@@ -333,3 +333,7 @@ Yasser Idbouzkri
 
 All rights reserved.
 
+
+## Android interface
+
+The Android application uses the premium Campus Booking interface with live NestJS/PostgreSQL integration. On a physical phone, open **Connection settings** on the sign-in screen and enter the reachable backend URL (for example, the development computer's LAN address while the backend is running).
