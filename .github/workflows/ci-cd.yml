@@ -38,7 +38,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cpeb_ci
-      JWT_SECRET: cpeb-ci-only-secret
+      JWT_SECRET: cpeb-ci-only-secret-which-is-long-enough-for-tests
       NODE_ENV: test
 
     defaults:
@@ -59,6 +59,12 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
+      - name: Reject critical runtime dependency vulnerabilities
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
       - name: Generate Prisma client
         run: npx prisma generate
 
@@ -68,8 +74,20 @@ jobs:
       - name: Build NestJS backend
         run: npm run build
 
-      - name: Run backend unit tests
-        run: npm test -- --runInBand
+      - name: Run backend unit tests with coverage
+        run: npm run test:ci
+
+      - name: Run backend E2E tests
+        run: npm run test:e2e -- --runInBand
+
+      - name: Upload backend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpeb-backend-coverage
+          path: apps/api/coverage
+          if-no-files-found: warn
+          retention-days: 14
 
   android:
     name: Android Build and Tests

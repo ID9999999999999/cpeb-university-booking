@@ -3,6 +3,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val rawCpebApiBaseUrl = providers.gradleProperty("CPEB_API_BASE_URL")
+    .orElse(providers.environmentVariable("CPEB_API_BASE_URL"))
+    .orElse("http://10.0.2.2:3000/")
+    .get()
+
+val cpebApiBaseUrl =
+    if (rawCpebApiBaseUrl.endsWith("/")) rawCpebApiBaseUrl else "$rawCpebApiBaseUrl/"
+
 android {
     namespace = "com.yasser.ub"
 
@@ -20,6 +28,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "CPEB_API_BASE_URL",
+            "\"$cpebApiBaseUrl\"",
+        )
     }
 
     buildTypes {
@@ -42,6 +56,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

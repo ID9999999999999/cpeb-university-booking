@@ -1,13 +1,28 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { AuditLogsService } from './audit-logs.service';
 
+@ApiTags('Audit logs')
+@ApiBearerAuth()
 @Controller('audit-logs')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AuditLogsController {
   constructor(private readonly auditLogsService: AuditLogsService) {}
 
   @Get()
-  findAll() {
-    return this.auditLogsService.findAll();
+  findAll(@Query('take') take?: string) {
+    return this.auditLogsService.findAll(take ? Number(take) : 100);
   }
 
   @Get(':id')

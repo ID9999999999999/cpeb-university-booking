@@ -1,0 +1,59 @@
+﻿name: Publish Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cpeb-android-release
+  cancel-in-progress: true
+
+jobs:
+  publish-apk:
+    name: Build and Publish Android APK
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: apps/android
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Run Android tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Build installable APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare downloadable APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CPEB-University-Booking.apk
+
+      - name: Publish APK in GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="android-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$TAG" \
+            "app/build/outputs/apk/debug/CPEB-University-Booking.apk#CPEB-University-Booking.apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "CPEB Android APK - Build ${GITHUB_RUN_NUMBER}" \
+            --notes "Installable CPEB University Booking Android APK automatically built and tested from the main branch." \
+            --latest

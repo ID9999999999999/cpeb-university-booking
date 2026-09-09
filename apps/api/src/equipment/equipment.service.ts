@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EquipmentStatus } from '@prisma/client';
+import { EquipmentStatus, MaintenanceStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 type CreateEquipmentInput = {
@@ -13,19 +13,20 @@ type CreateEquipmentInput = {
   inventoryTag: string;
   location?: string;
   description?: string;
+  actorId: string;
 };
 
 type UpdateEquipmentStatusInput = {
   equipmentId: string;
   status: EquipmentStatus;
-  actorId?: string;
+  actorId: string;
 };
 
 @Injectable()
 export class EquipmentService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  findAll() {
     return this.prisma.equipment.findMany({
       orderBy: [
         { category: 'asc' },
@@ -36,46 +37,30 @@ export class EquipmentService {
   }
 
   async findOne(id: string) {
-    const equipment = await this.prisma.equipment.findUnique({
-      where: { id },
-      include: {
-        bookings: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 10,
-        },
-        maintenanceRecords: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 10,
-        },
-        repairTickets: {
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 10,
-        },
-      },
-    });
+    const equipment = await this.prisma.equipment.findUnique({ where: { id } });
 
     if (!equipment) {
       throw new NotFoundException('Equipment not found.');
     }
 
+    // General authenticated users receive equipment data only. Operational
+    // booking, maintenance, repair, and user details stay behind admin routes.
     return equipment;
   }
 
   async createEquipment(input: CreateEquipmentInput) {
-    if (!input.name || !input.category || !input.inventoryTag) {
+    const name = input.name?.trim();
+    const category = input.category?.trim().toUpperCase();
+    const inventoryTag = input.inventoryTag?.trim().toUpperCase();
+
+    if (!name || !category || !inventoryTag) {
       throw new BadRequestException(
         'name, category, and inventoryTag are required.',
       );
     }
 
     const existing = await this.prisma.equipment.findUnique({
-      where: { inventoryTag: input.inventoryTag },
+      where: { inventoryTag },
     });
 
     if (existing) {
@@ -84,11 +69,21 @@ export class EquipmentService {
 
     const equipment = await this.prisma.equipment.create({
       data: {
-        name: input.name,
-        category: input.category,
-        inventoryTag: input.inventoryTag,
-        location: input.location,
-        description: input.description,
+        name,
+        category,
+        inventoryTag,
+        location: input.location?.trim() || undefined,
+        description: input.description?.trim() || undefined,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: input.actorId,
+        equipmentId: equipment.id,
+        action: 'EQUIPMENT_CREATED',
+        entityType: 'EQUIPMENT',
+        entityId: equipment.id,
       },
     });
 
@@ -113,25 +108,42 @@ export class EquipmentService {
       throw new NotFoundException('Equipment not found.');
     }
 
+    if (equipment.status === input.status) {
+      throw new BadRequestException(`Equipment is already ${input.status}.`);
+    }
+
+    if (input.status === EquipmentStatus.AVAILABLE) {
+      const activeMaintenance = await this.prisma.maintenanceRecord.findFirst({
+        where: {
+          equipmentId: input.equipmentId,
+          status: MaintenanceStatus.ACTIVE,
+        },
+        select: { id: true },
+      });
+
+      if (activeMaintenance) {
+        throw new ConflictException(
+          'Cannot mark equipment AVAILABLE while active maintenance exists.',
+        );
+      }
+    }
+
     const updatedEquipment = await this.prisma.equipment.update({
       where: { id: input.equipmentId },
+      data: { status: input.status },
+    });
+
+    await this.prisma.auditLog.create({
       data: {
-        status: input.status,
-        auditLogs: {
-          create: {
-            actorId: input.actorId,
-            action: 'EQUIPMENT_STATUS_UPDATED',
-            entityType: 'EQUIPMENT',
-            entityId: input.equipmentId,
-            metadata: {
-              previousStatus: equipment.status,
-              newStatus: input.status,
-            },
-          },
+        actorId: input.actorId,
+        equipmentId: input.equipmentId,
+        action: 'EQUIPMENT_STATUS_UPDATED',
+        entityType: 'EQUIPMENT',
+        entityId: input.equipmentId,
+        metadata: {
+          previousStatus: equipment.status,
+          newStatus: input.status,
         },
-      },
-      include: {
-        auditLogs: true,
       },
     });
 

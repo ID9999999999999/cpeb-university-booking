@@ -225,7 +225,7 @@ fun CpebRealApp() {
                     else {
                       ApiFactory.api.book(auth(), BookingBody(resource.id, start, end, reason))
                       bookings = ApiFactory.api.bookings(auth())
-                      notice = "Booking created"
+                      notice = "Booking request submitted for approval"
                       screen = Screen.BOOKINGS
                     }
                   } catch (t: Throwable) {
@@ -300,7 +300,7 @@ fun CpebRealApp() {
             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
               CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
               Spacer(Modifier.width(8.dp))
-              Text("WorkingÃ¢â‚¬Â¦")
+              Text("Working…")
             }
           }
         }
@@ -353,7 +353,7 @@ private fun Login(loading: Boolean, error: String, onLogin: (String, String) -> 
       { onLogin(email, password) },
       enabled = !loading && email.contains("@") && password.isNotBlank(),
       modifier = Modifier.fillMaxWidth()
-    ) { Text(if (loading) "Signing inÃ¢â‚¬Â¦" else "Sign in") }
+    ) { Text(if (loading) "Signing in…" else "Sign in") }
     TextButton(onRegister, modifier = Modifier.align(Alignment.CenterHorizontally)) {
       Text("Create student account")
     }
@@ -385,7 +385,7 @@ private fun Register(loading: Boolean, error: String, onBack: () -> Unit, onCrea
     if (confirm.isNotBlank() && password != confirm) ErrorText("Passwords do not match.")
     if (error.isNotBlank()) ErrorText(error)
     Button({ onCreate(name, email, password) }, enabled = !loading && valid, modifier = Modifier.fillMaxWidth()) {
-      Text(if (loading) "CreatingÃ¢â‚¬Â¦" else "Create account")
+      Text(if (loading) "Creating…" else "Create account")
     }
     OutlinedButton(onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
   }
@@ -417,7 +417,7 @@ private fun VerifyEmail(
       enabled = !loading && cleanCode.length == 6,
       modifier = Modifier.fillMaxWidth()
     ) {
-      Text(if (loading) "VerifyingÃ¢â‚¬Â¦" else "Verify and continue")
+      Text(if (loading) "Verifying…" else "Verify and continue")
     }
     OutlinedButton(
       onClick = onResend,
@@ -451,7 +451,7 @@ private fun Home(
       Metric("Reports", reports.size, Red, Modifier.weight(1f), onReports)
     }
     Button(onResources, modifier = Modifier.fillMaxWidth()) { Text("Browse classified resources") }
-    OutlinedButton(onRefresh, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "RefreshingÃ¢â‚¬Â¦" else "Refresh") }
+    OutlinedButton(onRefresh, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "Refreshing…" else "Refresh") }
     if (error.isNotBlank()) ErrorText(error)
   }
 }
@@ -498,7 +498,7 @@ private fun Resources(resources: List<EquipmentDto>, onOpen: (EquipmentDto) -> U
             Text(e.name, color = Navy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
             Status(e.status, if (e.status == "AVAILABLE") Green else Orange)
           }
-          Text("${e.category} Ã¢â‚¬Â¢ ${e.inventoryTag}", color = Color.Gray)
+          Text("${e.category} • ${e.inventoryTag}", color = Color.Gray)
           Text(e.location ?: "University campus")
           e.description?.let { Text(it) }
         }
@@ -509,7 +509,7 @@ private fun Resources(resources: List<EquipmentDto>, onOpen: (EquipmentDto) -> U
 
 @Composable
 private fun Details(resource: EquipmentDto, onBack: () -> Unit, onBook: () -> Unit, onReport: () -> Unit) {
-  Page(resource.name, "${resource.category} Ã¢â‚¬Â¢ ${resource.inventoryTag}") {
+  Page(resource.name, "${resource.category} • ${resource.inventoryTag}") {
     Info("Details", listOf(
       "Location: ${resource.location ?: "University campus"}",
       "Status: ${resource.status}",
@@ -572,14 +572,14 @@ private fun Book(
     if (!review) {
       Button({ review = true }, enabled = valid && !loading, modifier = Modifier.fillMaxWidth()) { Text("Review booking") }
     } else {
-      Info("Confirm", listOf("Date: $date", "Time: $start Ã¢â€ â€™ $end", "Duration: $minutes minutes", "Purpose: $reason"))
+      Info("Confirm", listOf("Date: $date", "Time: $start → $end", "Duration: $minutes minutes", "Purpose: $reason"))
       Button({
         onSubmit(
           s!!.atZone(ZoneId.systemDefault()).toInstant().toString(),
           e!!.atZone(ZoneId.systemDefault()).toInstant().toString(),
           reason.trim()
         )
-      }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "CheckingÃ¢â‚¬Â¦" else "Confirm and book") }
+      }, enabled = !loading, modifier = Modifier.fillMaxWidth()) { Text(if (loading) "Checking…" else "Confirm and book") }
       OutlinedButton({ review = false }, modifier = Modifier.fillMaxWidth()) { Text("Edit") }
     }
     TextButton(onBack, modifier = Modifier.fillMaxWidth()) { Text("Back") }
@@ -615,7 +615,7 @@ private fun Bookings(
         }
       }
     }
-    item { OutlinedButton(onRefresh) { Text(if (loading) "RefreshingÃ¢â‚¬Â¦" else "Refresh") } }
+    item { OutlinedButton(onRefresh) { Text(if (loading) "Refreshing…" else "Refresh") } }
     if (error.isNotBlank()) item { ErrorText(error) }
     if (filtered.isEmpty()) item { Empty("No bookings in this section.") }
     else items(filtered, key = { it.id }) { b ->
@@ -625,11 +625,11 @@ private fun Bookings(
             Text(b.equipment.name, color = Navy, fontWeight = FontWeight.Black, modifier = Modifier.weight(1f))
             Status(b.status, if (b.status in listOf("APPROVED", "CHECKED_OUT")) Green else Orange)
           }
-          Text("${b.startTime} Ã¢â€ â€™ ${b.endTime}")
+          Text("${b.startTime} → ${b.endTime}")
           b.reason?.let { Text("Purpose: $it") }
           Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (b.status in listOf("PENDING", "APPROVED")) OutlinedButton({ action = "cancel" to b.id }) { Text("Cancel") }
-            if (b.status in listOf("PENDING", "APPROVED", "CHECKED_OUT")) Button({ action = "finish" to b.id }) { Text("Finish") }
+            if (b.status in listOf("APPROVED", "CHECKED_OUT")) Button({ action = "finish" to b.id }) { Text("Finish") }
           }
         }
       }
@@ -697,7 +697,7 @@ private fun Reports(
         }
       }
     }
-    item { OutlinedButton(onRefresh) { Text(if (loading) "RefreshingÃ¢â‚¬Â¦" else "Refresh reports") } }
+    item { OutlinedButton(onRefresh) { Text(if (loading) "Refreshing…" else "Refresh reports") } }
     if (error.isNotBlank()) item { ErrorText(error) }
     if (reports.isEmpty()) item { Empty("No reports have been submitted.") }
     else items(reports, key = { it.id }) { r ->
@@ -735,7 +735,7 @@ private fun Profile(name: String, api: String, onLogout: () -> Unit) {
   Card(shape = RoundedCornerShape(18.dp)) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
       Text(title, color = Navy, fontWeight = FontWeight.Black)
-      lines.forEach { Text("Ã¢â‚¬Â¢ $it") }
+      lines.forEach { Text("• $it") }
     }
   }
 }
