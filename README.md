@@ -1,222 +1,322 @@
+﻿> ## Android APK
+> **[Download the latest Android APK](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest)**
+>
+> GitHub automatically builds and publishes the installable APK from the main branch.
+
+---
 # CPEB University Booking System
 
 [![CPEB CI-CD](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml/badge.svg?branch=main&event=push)](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml)
 
-A university equipment and resource booking system built with **NestJS**, **Prisma**, **PostgreSQL**, and **Android Jetpack Compose**.
+CPEB is a university equipment and resource booking system built with **NestJS**, **Prisma**, **PostgreSQL**, and **Android Jetpack Compose**.
 
-The project provides an academic booking workflow for students and university staff, including authentication, equipment management, booking validation, maintenance management, repair tickets, administrative operations, and audit tracking.
+The repository contains a real Android client and a real REST backend. Students can register, verify email addresses, authenticate, browse university resources, check availability, submit booking requests, manage their bookings, and report equipment problems. Authorized university staff can manage bookings, maintenance, equipment, repair tickets, users, and audit records.
+
+## Architecture
+
+```text
+Android application
+      â†“ Retrofit / JSON / JWT
+NestJS REST API
+      â†“ Prisma
+PostgreSQL database
+```
 
 ## Implemented Features
 
-### Project Foundation
+### Authentication and users
 
-- ✅ Project scope and problem definition
-- ✅ Core business rule: no overlapping active bookings for the same equipment
-- ✅ Public GitHub repository
-- ✅ Clean monorepository structure
-- ✅ Backend and Android applications stored in one repository
-- ✅ Environment example file
-- ✅ Sensitive local files excluded from Git
+- âœ… User registration stored in PostgreSQL
+- âœ… Email verification with six-digit codes
+- âœ… Verification-code resend
+- âœ… bcrypt password hashing
+- âœ… JWT authentication
+- âœ… Persistent Android login session
+- âœ… Authenticated `/auth/me` profile endpoint
+- âœ… Database-backed user roles
+- âœ… Administrative role management
+- âœ… Inactive-user rejection
+- âœ… Production startup rejects a missing or short JWT secret
 
-### Backend — NestJS
+### Equipment
 
-- ✅ NestJS REST API
-- ✅ PostgreSQL connection
-- ✅ Prisma ORM integration
-- ✅ Health endpoint
-- ✅ Database health endpoint
-- ✅ Authentication module
-- ✅ Equipment module
-- ✅ Booking module
-- ✅ Administrative module
-- ✅ Maintenance module
-- ✅ Repair-ticket module
-- ✅ Audit-log module
+- âœ… Equipment listing and detail
+- âœ… Inventory-tag uniqueness
+- âœ… Equipment creation and status management
+- âœ… Administrative equipment filtering
+- âœ… Audit events for equipment creation and status changes
+- âœ… General users do not receive nested operational booking/repair data from equipment detail
 
-### Authentication and User Management
+### Bookings
 
-- ✅ Real user registration
-- ✅ Email-verification workflow
-- ✅ Verification-code resend endpoint
-- ✅ Real user login
-- ✅ Password hashing with bcrypt
-- ✅ JWT authentication
-- ✅ Authenticated user-profile endpoint
-- ✅ User roles stored in the database
-- ✅ Role-based administrative access
-- ✅ Administrative user and role management
-
-### Database — Prisma and PostgreSQL
-
-- ✅ User model
-- ✅ Equipment model
-- ✅ Booking model
-- ✅ MaintenanceRecord model
-- ✅ RepairTicket model
-- ✅ AuditLog model
-- ✅ Core enums
-- ✅ User-role enum
-- ✅ Initial migration
-- ✅ Seed data
-- ✅ Demo users
-- ✅ Administrative user
-- ✅ Demo equipment
-
-### Equipment Management
-
-- ✅ List equipment
-- ✅ Get one equipment item
-- ✅ Create equipment
-- ✅ Reject duplicate inventory tags
-- ✅ Update equipment status
-- ✅ Filter administrative equipment data
-- ✅ Record equipment-status changes in audit logs
-
-### Booking System
-
-- ✅ Create booking requests
-- ✅ Validate booking time intervals
-- ✅ Check equipment availability
-- ✅ Reject unknown equipment
-- ✅ Reject unknown or inactive users
-- ✅ Reject non-bookable equipment
-- ✅ Reject overlapping bookings
-- ✅ Allow adjacent bookings
-- ✅ Display the authenticated user's booking history
-- ✅ Cancel bookings
-- ✅ Finish bookings
-- ✅ Approve pending bookings
-- ✅ Reject pending bookings
-- ✅ Administrative check-out and closing operations
-- ✅ Prevent repeated approval or rejection
-- ✅ Restrict administrative booking actions by role
-- ✅ Record booking actions in audit logs
+- âœ… Availability checks
+- âœ… Time-interval validation
+- âœ… Booking requests start in `PENDING`
+- âœ… Overlapping `PENDING`, `APPROVED`, and `CHECKED_OUT` bookings are rejected
+- âœ… Adjacent non-overlapping bookings are allowed
+- âœ… Scheduled/active maintenance blocks conflicting bookings
+- âœ… Student booking history
+- âœ… Student cancellation of pending/approved bookings
+- âœ… Student completion flow
+- âœ… Administrative approval and rejection
+- âœ… Administrative check-out, return, and close workflow
+- âœ… Invalid or repeated state transitions are rejected
+- âœ… Booking actions are recorded in audit logs
 
 ### Maintenance
 
-- ✅ List maintenance records
-- ✅ Get one maintenance record
-- ✅ Create maintenance records
-- ✅ Validate maintenance intervals
-- ✅ Validate maintenance status
-- ✅ Update maintenance status
-- ✅ Block bookings that overlap active or scheduled maintenance
-- ✅ Allow bookings after maintenance ends
-- ✅ Record maintenance actions in audit logs
+- âœ… Maintenance listing and detail
+- âœ… Role-protected maintenance operations
+- âœ… Maintenance interval validation
+- âœ… Booking-conflict validation
+- âœ… Overlapping maintenance-window validation
+- âœ… Controlled maintenance state transitions
+- âœ… Equipment becomes `UNDER_MAINTENANCE` when maintenance becomes active
+- âœ… Equipment is restored after maintenance when no other active maintenance remains
+- âœ… Maintenance actions are recorded in audit logs
 
-### Repair Tickets
+### Repair tickets
 
-- ✅ List repair tickets
-- ✅ Get one repair ticket
-- ✅ Create repair tickets
-- ✅ Display the authenticated user's reports
-- ✅ Validate related equipment
-- ✅ Validate ticket titles
-- ✅ Assign technicians
-- ✅ Validate technician roles
-- ✅ Update repair-ticket status
-- ✅ Store diagnoses
-- ✅ Store evidence URLs
-- ✅ Record repair-ticket actions in audit logs
+- âœ… Student repair-ticket submission
+- âœ… Student repair-ticket history
+- âœ… Student access to their own ticket detail
+- âœ… Equipment validation
+- âœ… Optional HTTP/HTTPS evidence URL
+- âœ… Technician assignment
+- âœ… Technician-role validation
+- âœ… Diagnosis and status administration
+- âœ… Closed tickets cannot be silently reopened
+- âœ… Ticket creation and administrative actions are auditable
 
-### Audit Logs
+### Audit and privacy
 
-- ✅ List audit logs
-- ✅ Get one audit log
-- ✅ Filter logs by equipment
-- ✅ Filter logs by booking
-- ✅ Return related actor and resource data
-- ✅ Administrative audit access
+- âœ… Audit-log module
+- âœ… Audit filters by equipment and booking
+- âœ… Direct audit-log routes restricted to administrators
+- âœ… Audit responses expose safe actor fields instead of password hashes or verification secrets
+- âœ… Request IDs and structured HTTP logs
+- âœ… Consistent global HTTP error responses
 
-### Android Application
+### API quality
 
-- ✅ Android project
-- ✅ Kotlin
-- ✅ Jetpack Compose
-- ✅ Material 3
-- ✅ Real connection to the NestJS API
-- ✅ Retrofit API client
-- ✅ Registration screen and backend registration
-- ✅ Email-verification screen
-- ✅ Login screen and backend authentication
-- ✅ JWT token storage
-- ✅ Persistent user session
-- ✅ Logout
-- ✅ Dashboard
-- ✅ Equipment list using real backend data
-- ✅ Equipment details
-- ✅ Availability checking
-- ✅ Real booking submission
-- ✅ User booking history
-- ✅ Booking cancellation
-- ✅ Booking completion
-- ✅ Repair-report submission
-- ✅ User repair-report history
-- ✅ Loading and API-error feedback
-- ✅ Main application navigation
-- ✅ Profile screen
-- ✅ Android visual assets
+- âœ… Swagger / OpenAPI at `/docs`
+- âœ… Bearer-token authorization in Swagger
+- âœ… Global DTO validation and transformation
+- âœ… Postman collection and local Postman environment
+- âœ… Health and database-health endpoints
+- âœ… Basic security headers
+- âœ… Development CORS support and configurable production origins
 
-### Testing and Evidence
+### Android application
 
-- ✅ Backend build verified
-- ✅ Booking-kernel test script
-- ✅ Approval-flow test script
-- ✅ Equipment-endpoint test script
-- ✅ Maintenance-endpoint test script
-- ✅ Maintenance-booking-block test script
-- ✅ Repair-ticket test script
-- ✅ Audit-log test script
-- ✅ Authentication flow verified
-- ✅ Test logs saved
-- ✅ Backend screenshots saved
-- ✅ Evidence folders organized
+- âœ… Kotlin
+- âœ… Jetpack Compose
+- âœ… Material 3
+- âœ… Retrofit and Gson
+- âœ… Real backend authentication
+- âœ… Registration and email-verification screens
+- âœ… Dashboard
+- âœ… Searchable/filterable resource list
+- âœ… Equipment detail
+- âœ… Availability checks
+- âœ… Real booking submission
+- âœ… Booking history, cancellation, and completion
+- âœ… Repair reporting and history
+- âœ… Profile/logout
+- âœ… Loading and API error feedback
+- âœ… Configurable backend URL at build time
 
-## Current Technical Stack
+### Testing and CI
+
+- âœ… Backend unit tests
+- âœ… Booking lifecycle tests
+- âœ… Maintenance lifecycle tests
+- âœ… Repair-ticket audit/ownership tests
+- âœ… Administrative booking-transition tests
+- âœ… Backend E2E health/security checks
+- âœ… Backend build in GitHub Actions
+- âœ… PostgreSQL service in CI
+- âœ… Prisma schema validation, generation, and migration deployment in CI
+- âœ… Runtime dependency gate for critical vulnerabilities
+- âœ… Coverage report artifact in CI
+- âœ… Android unit tests in CI
+- âœ… Android debug APK build and artifact upload
+
+## Technical Stack
 
 | Layer | Technology |
 |---|---|
-| Backend | NestJS and TypeScript |
-| Database | PostgreSQL |
+| Backend | NestJS + TypeScript |
+| Database | PostgreSQL 16 |
 | ORM | Prisma |
-| Authentication | JWT and bcrypt |
-| Email Verification | Nodemailer and SMTP |
-| Mobile Application | Android, Kotlin, Jetpack Compose and Material 3 |
-| API Client | Retrofit and Gson |
-| API Style | REST |
-| Version Control | Git and GitHub |
+| Authentication | JWT + Passport + bcrypt |
+| Email verification | Nodemailer + SMTP |
+| Validation | class-validator + class-transformer |
+| API documentation | Swagger / OpenAPI + Postman |
+| Mobile application | Android + Kotlin + Jetpack Compose + Material 3 |
+| API client | Retrofit + Gson |
+| CI | GitHub Actions |
 
 ## Repository Structure
 
 ```text
 apps/
-├── api/                 NestJS backend
-└── android/             Android Jetpack Compose application
+â”œâ”€â”€ api/                 NestJS backend
+â””â”€â”€ android/             Android application
 
-database/                Database-related resources
-docs/                    Project documentation
-evidence/                Test logs and screenshots
-scripts/                 Utility and setup scripts
+docs/                    Project and API documentation
+evidence/                Test evidence and screenshots
+scripts/                 Utility and verification scripts
 tests/                   Project verification resources
 ```
 
-## Core Workflow
+## Quick Start â€” Backend
+
+### 1. Start PostgreSQL
+
+Use an existing PostgreSQL 16 installation, or optionally start the included local Docker database from the repository root:
+
+```powershell
+docker compose up -d postgres
+```
+
+The Docker development database listens on `localhost:5432`.
+
+### 2. Configure the API
+
+```powershell
+cd apps\api
+Copy-Item .env.example .env
+```
+
+Edit `.env` and set at least:
 
 ```text
-Register account
-      ↓
-Verify email address
-      ↓
-Log in and receive JWT
-      ↓
-Browse university equipment
-      ↓
-Check equipment availability
-      ↓
-Create and manage bookings
-      ↓
-Submit equipment repair reports
+DATABASE_URL
+JWT_SECRET
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASSWORD
+MAIL_FROM
 ```
+
+Real registration requires working SMTP configuration because the verification code is delivered by email.
+
+### 3. Install and initialize
+
+```powershell
+npm ci
+npm run prisma:generate
+npm run prisma:migrate
+npm run seed:resources
+```
+
+To create administrative/technician seed accounts, configure the four `CPEB_*` credential variables in `.env`, then run:
+
+```powershell
+npm run seed:admin
+```
+
+No public default administrator password is embedded in the seed script.
+
+### 4. Run
+
+```powershell
+npm run start:dev
+```
+
+Then open:
+
+```text
+API:     http://localhost:3000/
+Health:  http://localhost:3000/health
+DB:      http://localhost:3000/db-health
+Swagger: http://localhost:3000/docs
+```
+
+## Android Backend Address
+
+The Android application no longer contains a developer-specific LAN IP.
+
+For the Android emulator, the default is:
+
+```text
+http://10.0.2.2:3000/
+```
+
+For a physical Android phone connected to the same network as the backend computer, build using the computer's reachable LAN address:
+
+```powershell
+cd apps\android
+.\gradlew.bat assembleDebug -PCPEB_API_BASE_URL=http://192.168.1.20:3000/
+```
+
+Replace `192.168.1.20` with the backend computer's current LAN address. The property may also be supplied through the `CPEB_API_BASE_URL` environment variable.
+
+The debug APK is produced under:
+
+```text
+apps/android/app/build/outputs/apk/debug/
+```
+
+## Booking Lifecycle
+
+```text
+Student submits request
+        â†“
+     PENDING
+      â†™   â†˜
+REJECTED   APPROVED
+              â†“
+         CHECKED_OUT
+              â†“
+           RETURNED
+              â†“
+            CLOSED
+```
+
+A reservation that does not require a physical check-out can be closed from `APPROVED`. A checked-out resource is returned before the administrative close step.
+
+## Postman
+
+Import:
+
+```text
+docs/api/CPEB_University_Booking_API.postman_collection.json
+docs/api/CPEB_Local.postman_environment.json
+```
+
+The login request stores the returned bearer token in the collection variable automatically.
+
+## Verification
+
+Backend unit tests and build:
+
+```powershell
+cd apps\api
+npm run verify
+```
+
+Backend E2E tests require a configured/running PostgreSQL database:
+
+```powershell
+npm run test:e2e -- --runInBand
+```
+
+Android:
+
+```powershell
+cd apps\android
+.\gradlew.bat testDebugUnitTest
+.\gradlew.bat assembleDebug
+```
+
+GitHub Actions repeats backend and Android verification on pull requests and pushes to `main`.
+
+## Security Scope
+
+This is an academic software project, not a fully operated university production service. It includes real authentication, authorization, request validation, protected administrative routes, safer audit responses, structured request logs, secret validation, and CI security checks. Production deployment would still require infrastructure-level TLS, secret management, persistent monitoring, backups, rate limiting, formal penetration testing, and operational policies.
 
 ## Academic Information
 
@@ -232,3 +332,4 @@ Yasser Idbouzkri
 ## License
 
 All rights reserved.
+

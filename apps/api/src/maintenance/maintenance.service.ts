@@ -1,9 +1,14 @@
-import {
+﻿import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MaintenanceStatus } from '@prisma/client';
+import {
+  BookingStatus,
+  EquipmentStatus,
+  MaintenanceStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 type CreateMaintenanceInput = {
@@ -12,37 +17,30 @@ type CreateMaintenanceInput = {
   description?: string;
   startTime: string;
   endTime: string;
-  status?: MaintenanceStatus;
-  actorId?: string;
+  actorId: string;
 };
 
 type UpdateMaintenanceStatusInput = {
   maintenanceId: string;
   status: MaintenanceStatus;
-  actorId?: string;
+  actorId: string;
 };
 
 @Injectable()
 export class MaintenanceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  findAll() {
     return this.prisma.maintenanceRecord.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        equipment: true,
-      },
+      orderBy: { createdAt: 'desc' },
+      include: { equipment: true },
     });
   }
 
   async findOne(id: string) {
     const maintenance = await this.prisma.maintenanceRecord.findUnique({
       where: { id },
-      include: {
-        equipment: true,
-      },
+      include: { equipment: true },
     });
 
     if (!maintenance) {
@@ -53,7 +51,8 @@ export class MaintenanceService {
   }
 
   async createMaintenance(input: CreateMaintenanceInput) {
-    if (!input.equipmentId || !input.title || !input.startTime || !input.endTime) {
+    const title = input.title?.trim();
+    if (!input.equipmentId || !title || !input.startTime || !input.endTime) {
       throw new BadRequestException(
         'equipmentId, title, startTime, and endTime are required.',
       );
@@ -70,13 +69,6 @@ export class MaintenanceService {
       throw new BadRequestException('startTime must be before endTime.');
     }
 
-    const allowedStatuses = Object.values(MaintenanceStatus);
-    const status = input.status ?? MaintenanceStatus.SCHEDULED;
-
-    if (!allowedStatuses.includes(status)) {
-      throw new BadRequestException('Invalid maintenance status.');
-    }
-
     const equipment = await this.prisma.equipment.findUnique({
       where: { id: input.equipmentId },
     });
@@ -85,18 +77,53 @@ export class MaintenanceService {
       throw new NotFoundException('Equipment not found.');
     }
 
+    const [bookingConflict, maintenanceConflict] = await Promise.all([
+      this.prisma.booking.findFirst({
+        where: {
+          equipmentId: input.equipmentId,
+          status: {
+            in: [
+              BookingStatus.PENDING,
+              BookingStatus.APPROVED,
+              BookingStatus.CHECKED_OUT,
+            ],
+          },
+          startTime: { lt: endTime },
+          endTime: { gt: startTime },
+        },
+        select: { id: true },
+      }),
+      this.prisma.maintenanceRecord.findFirst({
+        where: {
+          equipmentId: input.equipmentId,
+          status: {
+            in: [MaintenanceStatus.SCHEDULED, MaintenanceStatus.ACTIVE],
+          },
+          startTime: { lt: endTime },
+          endTime: { gt: startTime },
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    if (bookingConflict) {
+      throw new ConflictException('Maintenance conflicts with an active booking.');
+    }
+
+    if (maintenanceConflict) {
+      throw new ConflictException('Maintenance overlaps another maintenance window.');
+    }
+
     const maintenance = await this.prisma.maintenanceRecord.create({
       data: {
         equipmentId: input.equipmentId,
-        title: input.title,
-        description: input.description,
+        title,
+        description: input.description?.trim() || undefined,
         startTime,
         endTime,
-        status,
+        status: MaintenanceStatus.SCHEDULED,
       },
-      include: {
-        equipment: true,
-      },
+      include: { equipment: true },
     });
 
     await this.prisma.auditLog.create({
@@ -107,9 +134,7 @@ export class MaintenanceService {
         entityType: 'MAINTENANCE',
         entityId: maintenance.id,
         metadata: {
-          maintenanceId: maintenance.id,
-          equipmentId: input.equipmentId,
-          status,
+          status: maintenance.status,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
         },
@@ -123,12 +148,6 @@ export class MaintenanceService {
   }
 
   async updateStatus(input: UpdateMaintenanceStatusInput) {
-    const allowedStatuses = Object.values(MaintenanceStatus);
-
-    if (!allowedStatuses.includes(input.status)) {
-      throw new BadRequestException('Invalid maintenance status.');
-    }
-
     const maintenance = await this.prisma.maintenanceRecord.findUnique({
       where: { id: input.maintenanceId },
     });
@@ -137,15 +156,62 @@ export class MaintenanceService {
       throw new NotFoundException('Maintenance record not found.');
     }
 
+    if (maintenance.status === input.status) {
+      throw new BadRequestException(`Maintenance is already ${input.status}.`);
+    }
+
+    const validTransition =
+      (maintenance.status === MaintenanceStatus.SCHEDULED &&
+        (input.status === MaintenanceStatus.ACTIVE || input.status === MaintenanceStatus.CANCELLED)) ||
+      (maintenance.status === MaintenanceStatus.ACTIVE &&
+        (input.status === MaintenanceStatus.COMPLETED || input.status === MaintenanceStatus.CANCELLED));
+
+    if (!validTransition) {
+      throw new BadRequestException(
+        `Cannot change maintenance from ${maintenance.status} to ${input.status}.`,
+      );
+    }
+
     const updatedMaintenance = await this.prisma.maintenanceRecord.update({
       where: { id: input.maintenanceId },
-      data: {
-        status: input.status,
-      },
-      include: {
-        equipment: true,
-      },
+      data: { status: input.status },
+      include: { equipment: true },
     });
+
+    if (input.status === MaintenanceStatus.ACTIVE) {
+      await this.prisma.equipment.update({
+        where: { id: maintenance.equipmentId },
+        data: { status: EquipmentStatus.UNDER_MAINTENANCE },
+      });
+    }
+
+    if (
+      input.status === MaintenanceStatus.COMPLETED ||
+      input.status === MaintenanceStatus.CANCELLED
+    ) {
+      const otherActive = await this.prisma.maintenanceRecord.findFirst({
+        where: {
+          equipmentId: maintenance.equipmentId,
+          id: { not: input.maintenanceId },
+          status: MaintenanceStatus.ACTIVE,
+        },
+        select: { id: true },
+      });
+
+      if (!otherActive) {
+        const currentEquipment = await this.prisma.equipment.findUnique({
+          where: { id: maintenance.equipmentId },
+          select: { status: true },
+        });
+
+        if (currentEquipment?.status === EquipmentStatus.UNDER_MAINTENANCE) {
+          await this.prisma.equipment.update({
+            where: { id: maintenance.equipmentId },
+            data: { status: EquipmentStatus.AVAILABLE },
+          });
+        }
+      }
+    }
 
     await this.prisma.auditLog.create({
       data: {
@@ -155,8 +221,6 @@ export class MaintenanceService {
         entityType: 'MAINTENANCE',
         entityId: input.maintenanceId,
         metadata: {
-          maintenanceId: input.maintenanceId,
-          equipmentId: updatedMaintenance.equipmentId,
           previousStatus: maintenance.status,
           newStatus: input.status,
         },
@@ -169,3 +233,4 @@ export class MaintenanceService {
     };
   }
 }
+

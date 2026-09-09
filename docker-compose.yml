@@ -1,16 +1,21 @@
 services:
   postgres:
     image: postgres:16
-    container_name: university_equipment_postgres
-    restart: unless-stopped
+    container_name: cpeb-postgres
     environment:
-      POSTGRES_USER: university_admin
-      POSTGRES_PASSWORD: university_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${CPEB_POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: university_equipment_booking
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - cpeb_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d university_equipment_booking"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
+  cpeb_postgres_data:

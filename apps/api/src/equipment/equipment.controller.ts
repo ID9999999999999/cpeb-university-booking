@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/roles.decorator';
@@ -12,12 +22,45 @@ import { EquipmentService } from './equipment.service';
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
-  @Get() findAll() { return this.equipmentService.findAll(); }
-  @Get(':id') findOne(@Param('id') id: string) { return this.equipmentService.findOne(id); }
-  @Roles('ADMIN') @Post() createEquipment(@Body() body: CreateEquipmentDto) {
-    return this.equipmentService.createEquipment({ name: body.name, category: body.category, inventoryTag: body.inventoryTag, location: body.location, description: body.description });
+
+  private actor(request: any) {
+    return request.user?.id ?? request.user?.userId ?? request.user?.sub;
   }
-  @Roles('ADMIN') @Patch(':id/status') updateStatus(@Param('id') id: string, @Body() body: EquipmentStatusDto) {
-    return this.equipmentService.updateStatus({ equipmentId: id, status: body.status, actorId: body.actorId });
+
+  @Get()
+  findAll() {
+    return this.equipmentService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.equipmentService.findOne(id);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post()
+  createEquipment(@Request() request: any, @Body() body: CreateEquipmentDto) {
+    return this.equipmentService.createEquipment({
+      name: body.name,
+      category: body.category,
+      inventoryTag: body.inventoryTag,
+      location: body.location,
+      description: body.description,
+      actorId: this.actor(request),
+    });
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch(':id/status')
+  updateStatus(
+    @Request() request: any,
+    @Param('id') id: string,
+    @Body() body: EquipmentStatusDto,
+  ) {
+    return this.equipmentService.updateStatus({
+      equipmentId: id,
+      status: body.status,
+      actorId: this.actor(request),
+    });
   }
 }
