@@ -1,4 +1,4 @@
-﻿package com.yasser.ub.ubpremium
+package com.yasser.ub.ubpremium
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -68,6 +68,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yasser.ub.R
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.yasser.ub.real.*
+import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 private val IMG_LOGO = R.drawable.ub_campus_logo
 private val IMG_CAMPUS = R.drawable.campus_parking_zone
@@ -159,6 +171,10 @@ private data class ReportUi(
 
 @Composable
 fun UbCampusBookingApp() {
+    val context = LocalContext.current
+    val session = remember { Session(context) }
+    val scope = rememberCoroutineScope()
+
     MaterialTheme(
         colorScheme = lightColorScheme(
             primary = UB.Blue,
@@ -168,30 +184,53 @@ fun UbCampusBookingApp() {
         )
     ) {
         val categories = remember { studentCategories() }
-        val resources = remember { studentResources() }
-        val bookings = remember {
-            mutableStateListOf(
-                BookingUi("B-1041", "Lecture Hall A1", "Today 13:00 - 15:00", "Approved", "AI seminar presentation"),
-                BookingUi("B-1042", "Canon Camera Kit", "Tomorrow 09:00 - 16:00", "Pending", "Project video recording"),
-                BookingUi("B-1036", "Computer Lab 01", "Yesterday 10:00 - 12:00", "Finished", "Practical session")
-            )
-        }
-        val reports = remember {
-            mutableStateListOf(
-                ReportUi("Projector not working", "Lecture Hall A1", "Sent to technician", "Today"),
-                ReportUi("Weak camera battery", "Canon Camera Kit", "Under review", "Yesterday")
-            )
-        }
+        val resources = remember { mutableStateListOf<ResourceUi>() }
+        val bookings = remember { mutableStateListOf<BookingUi>() }
+        val reports = remember { mutableStateListOf<ReportUi>() }
 
-        var screen by remember { mutableStateOf(StudentScreen.Welcome) }
+        var screen by remember { mutableStateOf(if (session.token == null) StudentScreen.Welcome else StudentScreen.Home) }
         var tab by remember { mutableStateOf("Home") }
         var selectedCategory by remember { mutableStateOf(categories.first()) }
-        var selectedResource by remember { mutableStateOf(resources.first()) }
-        var selectedBooking by remember { mutableStateOf(bookings.first()) }
+        var selectedResource by remember { mutableStateOf<ResourceUi?>(null) }
+        var selectedBooking by remember { mutableStateOf<BookingUi?>(null) }
+        var pendingEmail by remember { mutableStateOf("") }
+        var pendingDay by remember { mutableStateOf("Tue") }
+        var pendingSlot by remember { mutableStateOf("13:00 - 15:00") }
+        var pendingStart by remember { mutableStateOf("") }
+        var pendingEnd by remember { mutableStateOf("") }
+        var busy by remember { mutableStateOf(false) }
+        var globalError by remember { mutableStateOf("") }
+
+        fun api() = ApiFactory.api(session.apiBaseUrl)
+
+        fun refresh() {
+            if (session.token == null) return
+            scope.launch {
+                busy = true
+                globalError = ""
+                try {
+                    val auth = session.bearer()
+                    val equipment = api().equipment(auth)
+                    val serverBookings = api().bookings(auth)
+                    val serverReports = api().reports(auth)
+                    resources.clear()
+                    resources.addAll(equipment.map(::equipmentToResourceUi))
+                    bookings.clear()
+                    bookings.addAll(serverBookings.map(::bookingToUi))
+                    reports.clear()
+                    reports.addAll(serverReports.map(::reportToUi))
+                } catch (t: Throwable) {
+                    globalError = readablePremiumError(t)
+                } finally {
+                    busy = false
+                }
+            }
+        }
 
         fun openHome() {
             tab = "Home"
             screen = StudentScreen.Home
+            refresh()
         }
 
         fun openCategory(category: CategoryUi) {
@@ -204,196 +243,430 @@ fun UbCampusBookingApp() {
             screen = StudentScreen.ResourceDetails
         }
 
-        fun updateSelectedBookingStatus(newStatus: String) {
-            val index = bookings.indexOfFirst { it.id == selectedBooking.id }
-            val updated = selectedBooking.copy(status = newStatus)
-            selectedBooking = updated
-            if (index >= 0) {
-                bookings[index] = updated
-            }
+        LaunchedEffect(session.token, session.apiBaseUrl) {
+            if (session.token != null) refresh()
         }
 
         Surface(modifier = Modifier.fillMaxSize(), color = UB.Bg) {
-            when (screen) {
-                StudentScreen.Welcome -> StudentWelcomeScreen(
-                    onStart = { screen = StudentScreen.Login },
-                    onSignIn = { screen = StudentScreen.Login }
-                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (screen) {
+                    StudentScreen.Welcome -> StudentWelcomeScreen(
+                        onStart = { screen = StudentScreen.Login },
+                        onSignIn = { screen = StudentScreen.Login }
+                    )
 
-                StudentScreen.Login -> StudentLoginScreen(
-                    onLogin = { openHome() },
-                    onRegister = { screen = StudentScreen.Register },
-                    onHelp = { screen = StudentScreen.Help }
-                )
+                    StudentScreen.Login -> StudentLoginScreen(
+                        session = session,
+                        onLogin = { openHome() },
+                        onRegister = { screen = StudentScreen.Register },
+                        onHelp = { screen = StudentScreen.Help }
+                    )
 
-                StudentScreen.Register -> StudentRegisterScreen(
-                    onBack = { screen = StudentScreen.Login },
-                    onNext = { screen = StudentScreen.Verify }
-                )
+                    StudentScreen.Register -> StudentRegisterScreen(
+                        session = session,
+                        onBack = { screen = StudentScreen.Login },
+                        onNext = { email ->
+                            pendingEmail = email
+                            screen = StudentScreen.Verify
+                        }
+                    )
 
-                StudentScreen.Verify -> StudentVerifyScreen(
-                    onBack = { screen = StudentScreen.Register },
-                    onDone = { openHome() }
-                )
+                    StudentScreen.Verify -> StudentVerifyScreen(
+                        session = session,
+                        email = pendingEmail,
+                        onBack = { screen = StudentScreen.Register },
+                        onDone = { openHome() }
+                    )
 
-                else -> StudentShell(
-                    current = tab,
-                    onTab = {
-                        tab = it
-                        screen = when (it) {
-                            "Home" -> StudentScreen.Home
-                            "Bookings" -> StudentScreen.MyBookings
-                            "Reports" -> StudentScreen.MyReports
-                            "Help" -> StudentScreen.Help
-                            else -> StudentScreen.Profile
+                    else -> StudentShell(
+                        current = tab,
+                        onTab = {
+                            tab = it
+                            screen = when (it) {
+                                "Home" -> StudentScreen.Home
+                                "Bookings" -> StudentScreen.MyBookings
+                                "Reports" -> StudentScreen.MyReports
+                                "Help" -> StudentScreen.Help
+                                else -> StudentScreen.Profile
+                            }
+                        }
+                    ) {
+                        when (screen) {
+                            StudentScreen.Home -> StudentHomeScreen(
+                                name = session.name ?: "Student",
+                                categories = categories,
+                                bookings = bookings,
+                                reportCount = reports.size,
+                                onOpenCategory = { openCategory(it) },
+                                onOpenBookings = {
+                                    tab = "Bookings"
+                                    screen = StudentScreen.MyBookings
+                                },
+                                onWarnings = { screen = StudentScreen.Warnings },
+                                onHelp = { screen = StudentScreen.Help }
+                            )
+
+                            StudentScreen.Category,
+                            StudentScreen.ResourceList -> StudentCategoryScreen(
+                                category = selectedCategory,
+                                resources = resources.filter { it.kind == selectedCategory.kind },
+                                onBack = { openHome() },
+                                onOpen = { openResource(it) }
+                            )
+
+                            StudentScreen.ResourceDetails -> selectedResource?.let { resource ->
+                                StudentResourceDetailsScreen(
+                                    resource = resource,
+                                    onBack = { screen = StudentScreen.Category },
+                                    onBook = { screen = StudentScreen.Availability },
+                                    onReport = { screen = StudentScreen.ReportProblem }
+                                )
+                            } ?: PremiumEmptyState("No resource selected", "Return to Resources and choose an item.")
+
+                            StudentScreen.Availability -> selectedResource?.let { resource ->
+                                StudentAvailabilityScreen(
+                                    resource = resource,
+                                    onBack = { screen = StudentScreen.ResourceDetails },
+                                    onContinue = { day, slot ->
+                                        scope.launch {
+                                            busy = true
+                                            globalError = ""
+                                            try {
+                                                val (start, end) = selectionToIso(day, slot)
+                                                val availability = api().availability(session.bearer(), resource.id, start, end)
+                                                if (!availability.available) {
+                                                    globalError = availability.reason.ifBlank { "This time is not available." }
+                                                } else {
+                                                    pendingDay = day
+                                                    pendingSlot = slot
+                                                    pendingStart = start
+                                                    pendingEnd = end
+                                                    screen = StudentScreen.BookingReview
+                                                }
+                                            } catch (t: Throwable) {
+                                                globalError = readablePremiumError(t)
+                                            } finally {
+                                                busy = false
+                                            }
+                                        }
+                                    }
+                                )
+                            } ?: PremiumEmptyState("No resource selected", "Choose a resource before checking availability.")
+
+                            StudentScreen.BookingReview -> selectedResource?.let { resource ->
+                                StudentBookingReviewScreen(
+                                    resource = resource,
+                                    day = pendingDay,
+                                    slot = pendingSlot,
+                                    onBack = { screen = StudentScreen.Availability },
+                                    onSubmit = { purpose ->
+                                        scope.launch {
+                                            busy = true
+                                            globalError = ""
+                                            try {
+                                                val created = api().book(
+                                                    session.bearer(),
+                                                    BookingBody(resource.id, pendingStart, pendingEnd, purpose)
+                                                )
+                                                val ui = bookingToUi(created)
+                                                bookings.removeAll { it.id == ui.id }
+                                                bookings.add(0, ui)
+                                                selectedBooking = ui
+                                                screen = StudentScreen.BookingSuccess
+                                            } catch (t: Throwable) {
+                                                globalError = readablePremiumError(t)
+                                            } finally {
+                                                busy = false
+                                            }
+                                        }
+                                    }
+                                )
+                            } ?: PremiumEmptyState("No resource selected", "Return to Resources and choose an item.")
+
+                            StudentScreen.BookingSuccess -> StudentBookingSuccessScreen(
+                                onTrack = {
+                                    selectedBooking = selectedBooking ?: bookings.firstOrNull()
+                                    screen = StudentScreen.BookingTracking
+                                },
+                                onHome = { openHome() }
+                            )
+
+                            StudentScreen.MyBookings -> StudentMyBookingsScreen(
+                                bookings = bookings,
+                                onOpen = {
+                                    selectedBooking = it
+                                    screen = StudentScreen.BookingTracking
+                                }
+                            )
+
+                            StudentScreen.BookingTracking -> selectedBooking?.let { booking ->
+                                StudentBookingTrackingScreen(
+                                    booking = booking,
+                                    onBack = { screen = StudentScreen.MyBookings },
+                                    onFinish = { screen = StudentScreen.FinishBooking },
+                                    onReport = {
+                                        selectedResource = resources.firstOrNull { it.name == booking.resource }
+                                        screen = StudentScreen.ReportProblem
+                                    }
+                                )
+                            } ?: PremiumEmptyState("No booking selected", "Open a booking from My Bookings.")
+
+                            StudentScreen.FinishBooking -> StudentFinishBookingScreen(
+                                onBack = { screen = StudentScreen.BookingTracking },
+                                onRate = {
+                                    val booking = selectedBooking
+                                    if (booking != null) {
+                                        scope.launch {
+                                            busy = true
+                                            globalError = ""
+                                            try {
+                                                val updated = api().finish(session.bearer(), booking.id)
+                                                val ui = bookingToUi(updated)
+                                                selectedBooking = ui
+                                                val index = bookings.indexOfFirst { it.id == ui.id }
+                                                if (index >= 0) bookings[index] = ui
+                                                screen = StudentScreen.RateExperience
+                                            } catch (t: Throwable) {
+                                                globalError = readablePremiumError(t)
+                                            } finally {
+                                                busy = false
+                                            }
+                                        }
+                                    }
+                                },
+                                onProblem = { screen = StudentScreen.ReportProblem }
+                            )
+
+                            StudentScreen.RateExperience -> StudentRateExperienceScreen(
+                                onBack = { screen = StudentScreen.FinishBooking },
+                                onDone = {
+                                    tab = "Bookings"
+                                    screen = StudentScreen.MyBookings
+                                    refresh()
+                                }
+                            )
+
+                            StudentScreen.ReportProblem -> {
+                                val resource = selectedResource
+                                if (resource != null) {
+                                    StudentReportProblemScreen(
+                                        resourceName = resource.name,
+                                        onBack = { screen = StudentScreen.ResourceDetails },
+                                        onSubmit = { title, description ->
+                                            scope.launch {
+                                                busy = true
+                                                globalError = ""
+                                                try {
+                                                    val created = api().report(
+                                                        session.bearer(),
+                                                        ReportBody(resource.id, title, description.ifBlank { null })
+                                                    )
+                                                    reports.add(0, reportToUi(created))
+                                                    tab = "Reports"
+                                                    screen = StudentScreen.MyReports
+                                                } catch (t: Throwable) {
+                                                    globalError = readablePremiumError(t)
+                                                } finally {
+                                                    busy = false
+                                                }
+                                            }
+                                        }
+                                    )
+                                } else {
+                                    PremiumEmptyState("Choose a resource first", "Reports are attached to a university resource.")
+                                }
+                            }
+
+                            StudentScreen.MyReports -> StudentReportsScreen(
+                                reports = reports,
+                                onNew = {
+                                    selectedResource = resources.firstOrNull()
+                                    screen = StudentScreen.ReportProblem
+                                }
+                            )
+
+                            StudentScreen.Warnings -> StudentWarningsScreen(onBack = { openHome() })
+                            StudentScreen.Help -> StudentHelpScreen(onBack = {
+                                screen = if (session.token == null) StudentScreen.Login else StudentScreen.Home
+                            })
+
+                            StudentScreen.Profile -> StudentProfileScreen(
+                                name = session.name ?: "University Student",
+                                server = session.apiBaseUrl,
+                                onWarnings = { screen = StudentScreen.Warnings },
+                                onReports = {
+                                    tab = "Reports"
+                                    screen = StudentScreen.MyReports
+                                },
+                                onHelp = { screen = StudentScreen.Help },
+                                onLogout = {
+                                    session.clear()
+                                    resources.clear()
+                                    bookings.clear()
+                                    reports.clear()
+                                    tab = "Home"
+                                    screen = StudentScreen.Login
+                                }
+                            )
+
+                            else -> PremiumEmptyState("Campus Booking", "Choose an option from the navigation bar.")
                         }
                     }
-                ) {
-                    when (screen) {
-                        StudentScreen.Home -> StudentHomeScreen(
-                            categories = categories,
-                            bookings = bookings,
-                            onOpenCategory = { openCategory(it) },
-                            onOpenBookings = {
-                                tab = "Bookings"
-                                screen = StudentScreen.MyBookings
-                            },
-                            onWarnings = { screen = StudentScreen.Warnings },
-                            onHelp = { screen = StudentScreen.Help }
-                        )
+                }
 
-                        StudentScreen.Category -> StudentCategoryScreen(
-                            category = selectedCategory,
-                            resources = resources.filter { it.kind == selectedCategory.kind },
-                            onBack = { openHome() },
-                            onOpen = { openResource(it) }
-                        )
-
-                        StudentScreen.ResourceList -> StudentCategoryScreen(
-                            category = selectedCategory,
-                            resources = resources.filter { it.kind == selectedCategory.kind },
-                            onBack = { openHome() },
-                            onOpen = { openResource(it) }
-                        )
-
-                        StudentScreen.ResourceDetails -> StudentResourceDetailsScreen(
-                            resource = selectedResource,
-                            onBack = { screen = StudentScreen.Category },
-                            onBook = { screen = StudentScreen.Availability },
-                            onReport = { screen = StudentScreen.ReportProblem }
-                        )
-
-                        StudentScreen.Availability -> StudentAvailabilityScreen(
-                            resource = selectedResource,
-                            onBack = { screen = StudentScreen.ResourceDetails },
-                            onContinue = { screen = StudentScreen.BookingReview }
-                        )
-
-                        StudentScreen.BookingReview -> StudentBookingReviewScreen(
-                            resource = selectedResource,
-                            onBack = { screen = StudentScreen.Availability },
-                            onSubmit = {
-                                bookings.add(
-                                    0,
-                                    BookingUi(
-                                        "B-NEW",
-                                        selectedResource.name,
-                                        "Selected slot",
-                                        "Approved",
-                                        "New academic booking request"
-                                    )
-                                )
-                                screen = StudentScreen.BookingSuccess
-                            }
-                        )
-
-                        StudentScreen.BookingSuccess -> StudentBookingSuccessScreen(
-                            onTrack = {
-                                selectedBooking = bookings.first()
-                                screen = StudentScreen.BookingTracking
-                            },
-                            onHome = { openHome() }
-                        )
-
-                        StudentScreen.MyBookings -> StudentMyBookingsScreen(
-                            bookings = bookings,
-                            onOpen = {
-                                selectedBooking = it
-                                screen = StudentScreen.BookingTracking
-                            }
-                        )
-
-                        StudentScreen.BookingTracking -> StudentBookingTrackingScreen(
-                            booking = selectedBooking,
-                            onBack = { screen = StudentScreen.MyBookings },
-                            onFinish = { screen = StudentScreen.FinishBooking },
-                            onReport = { screen = StudentScreen.ReportProblem }
-                        )
-
-                        StudentScreen.FinishBooking -> StudentFinishBookingScreen(
-                            onBack = { screen = StudentScreen.BookingTracking },
-                            onRate = {
-                                updateSelectedBookingStatus("Finished")
-                                screen = StudentScreen.RateExperience
-                            },
-                            onProblem = { screen = StudentScreen.ReportProblem }
-                        )
-
-                        StudentScreen.RateExperience -> StudentRateExperienceScreen(
-                            onBack = { screen = StudentScreen.FinishBooking },
-                            onDone = {
-                                updateSelectedBookingStatus("Finished")
-                                tab = "Bookings"
-                                screen = StudentScreen.MyBookings
-                            }
-                        )
-
-                        StudentScreen.ReportProblem -> StudentReportProblemScreen(
-                            resourceName = selectedResource.name,
-                            onBack = { screen = StudentScreen.ResourceDetails },
-                            onSubmit = { title ->
-                                reports.add(0, ReportUi(title, selectedResource.name, "Sent to staff", "Now"))
-                                tab = "Reports"
-                                screen = StudentScreen.MyReports
-                            }
-                        )
-
-                        StudentScreen.MyReports -> StudentReportsScreen(
-                            reports = reports,
-                            onNew = { screen = StudentScreen.ReportProblem }
-                        )
-
-                        StudentScreen.Warnings -> StudentWarningsScreen(
-                            onBack = { openHome() }
-                        )
-
-                        StudentScreen.Help -> StudentHelpScreen(
-                            onBack = { openHome() }
-                        )
-
-                        StudentScreen.Profile -> StudentProfileScreen(
-                            onWarnings = { screen = StudentScreen.Warnings },
-                            onReports = {
-                                tab = "Reports"
-                                screen = StudentScreen.MyReports
-                            },
-                            onHelp = { screen = StudentScreen.Help },
-                            onLogout = {
-                                tab = "Home"
-                                screen = StudentScreen.Login
-                            }
-                        )
-
-                        else -> StudentHomeScreen(
-                            categories = categories,
-                            bookings = bookings,
-                            onOpenCategory = { openCategory(it) },
-                            onOpenBookings = { screen = StudentScreen.MyBookings },
-                            onWarnings = { screen = StudentScreen.Warnings },
-                            onHelp = { screen = StudentScreen.Help }
-                        )
+                if (busy) {
+                    Card(
+                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(12.dp),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(Color.White)
+                    ) {
+                        Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(10.dp))
+                            Text("Connecting to university services...", color = UB.Navy, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else if (globalError.isNotBlank()) {
+                    Card(
+                        modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(12.dp).clickable { globalError = "" },
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(Color(0xFFFFF1F2))
+                    ) {
+                        Text(globalError, color = UB.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(14.dp))
                     }
                 }
+            }
+        }
+    }
+}
+
+private fun equipmentToResourceUi(e: EquipmentDto): ResourceUi {
+    val kind = when (e.category.uppercase()) {
+        "ROOM", "ROOMS", "HALL" -> ResourceKind.Rooms
+        "LAB", "LABORATORY", "LABS" -> ResourceKind.Labs
+        "MEDIA", "EQUIPMENT" -> ResourceKind.Media
+        "SPORT", "SPORTS" -> ResourceKind.Sports
+        "PARKING", "ACCESS" -> ResourceKind.Parking
+        else -> ResourceKind.Media
+    }
+    val image = when (kind) {
+        ResourceKind.Rooms -> IMG_ROOM
+        ResourceKind.Labs -> IMG_LAB
+        ResourceKind.Media -> IMG_MEDIA
+        ResourceKind.Sports -> null
+        ResourceKind.Parking -> IMG_PARKING
+    }
+    val color = when (kind) {
+        ResourceKind.Rooms -> UB.Blue
+        ResourceKind.Labs -> UB.Purple
+        ResourceKind.Media -> UB.Orange
+        ResourceKind.Sports -> UB.Green
+        ResourceKind.Parking -> UB.Navy
+    }
+    val humanStatus = e.status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+    val description = e.description?.takeIf { it.isNotBlank() } ?: "University ${e.category.lowercase()} resource"
+    return ResourceUi(
+        id = e.id,
+        kind = kind,
+        name = e.name,
+        subtitle = description,
+        location = e.location ?: "University campus",
+        status = humanStatus,
+        image = image,
+        color = color,
+        details = listOf(
+            "Inventory tag: ${e.inventoryTag}",
+            "Category: ${e.category}",
+            "Location: ${e.location ?: "University campus"}",
+            description
+        ),
+        rules = when (kind) {
+            ResourceKind.Rooms -> listOf("Keep the room clean", "Respect the reserved time", "Report equipment problems immediately")
+            ResourceKind.Labs -> listOf("Follow laboratory safety rules", "Use only approved equipment", "Report damage immediately")
+            ResourceKind.Media -> listOf("Return every kit component", "Protect batteries and accessories", "Report missing parts")
+            ResourceKind.Sports -> listOf("Return all borrowed items", "Use equipment only in approved areas", "Respect facility safety rules")
+            ResourceKind.Parking -> listOf("Use only the assigned zone", "Respect access times", "Follow campus security instructions")
+        }
+    )
+}
+
+private fun bookingToUi(b: BookingDto): BookingUi = BookingUi(
+    id = b.id,
+    resource = b.equipment.name,
+    time = "${formatPremiumDate(b.startTime)} - ${formatPremiumTime(b.endTime)}",
+    status = when (b.status.uppercase()) {
+        "PENDING" -> "Pending"
+        "APPROVED" -> "Approved"
+        "CHECKED_OUT" -> "Active"
+        "RETURNED", "CLOSED" -> "Finished"
+        "CANCELLED" -> "Cancelled"
+        "REJECTED" -> "Rejected"
+        else -> b.status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+    },
+    note = b.reason ?: "University booking"
+)
+
+private fun reportToUi(r: ReportDto): ReportUi = ReportUi(
+    title = r.title,
+    resource = r.equipment.name,
+    status = r.status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() },
+    date = r.createdAt.take(10)
+)
+
+private fun formatPremiumDate(value: String): String = runCatching {
+    val z = ZonedDateTime.parse(value)
+    z.format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
+}.getOrElse { value }
+
+private fun formatPremiumTime(value: String): String = runCatching {
+    val z = ZonedDateTime.parse(value)
+    z.format(DateTimeFormatter.ofPattern("HH:mm"))
+}.getOrElse { value }
+
+private fun selectionToIso(day: String, slot: String): Pair<String, String> {
+    val wanted = when (day) {
+        "Mon" -> DayOfWeek.MONDAY
+        "Tue" -> DayOfWeek.TUESDAY
+        "Wed" -> DayOfWeek.WEDNESDAY
+        "Thu" -> DayOfWeek.THURSDAY
+        "Fri" -> DayOfWeek.FRIDAY
+        else -> DayOfWeek.MONDAY
+    }
+    val parts = slot.split("-").map { it.trim() }
+    val startTime = LocalTime.parse(parts[0])
+    val endTime = LocalTime.parse(parts[1])
+    val zone = ZoneId.systemDefault()
+    val now = ZonedDateTime.now(zone)
+    var date = LocalDate.now(zone)
+    repeat(8) {
+        val candidate = ZonedDateTime.of(date, startTime, zone)
+        if (date.dayOfWeek == wanted && candidate.isAfter(now)) {
+            val end = ZonedDateTime.of(date, endTime, zone)
+            return candidate.toInstant().toString() to end.toInstant().toString()
+        }
+        date = date.plusDays(1)
+    }
+    val start = ZonedDateTime.of(date, startTime, zone)
+    val end = ZonedDateTime.of(date, endTime, zone)
+    return start.toInstant().toString() to end.toInstant().toString()
+}
+
+private fun readablePremiumError(t: Throwable): String {
+    return if (t is retrofit2.HttpException) {
+        t.response()?.errorBody()?.string()?.takeIf { it.isNotBlank() } ?: "The university server rejected the request."
+    } else {
+        t.message ?: "Cannot connect to the university server. Check Connection settings on the sign-in screen."
+    }
+}
+
+@Composable
+private fun PremiumEmptyState(title: String, subtitle: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(Color.White)) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(title, color = UB.Navy, fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(8.dp))
+                Text(subtitle, color = UB.Muted, textAlign = TextAlign.Center)
             }
         }
     }
@@ -581,32 +854,30 @@ private fun StudentWelcomeScreen(onStart: () -> Unit, onSignIn: () -> Unit) {
 }
 
 @Composable
-private fun StudentLoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHelp: () -> Unit) {
+private fun StudentLoginScreen(session: Session, onLogin: () -> Unit, onRegister: () -> Unit, onHelp: () -> Unit) {
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
+    var showServer by remember { mutableStateOf(false) }
+    var serverUrl by remember { mutableStateOf(session.apiBaseUrl) }
 
     AuthFrame(title = "Sign in", subtitle = "Use your university account to continue") {
-        InputField(
-            value = email,
-            onValueChange = {
-                email = it
-                error = ""
-            },
-            label = "University email",
-            keyboardType = KeyboardType.Email
-        )
+        InputField(email, { email = it; error = "" }, "University email", KeyboardType.Email)
         Spacer(Modifier.height(10.dp))
-        InputField(
-            value = password,
-            onValueChange = {
-                password = it
-                error = ""
-            },
-            label = "Password",
-            isPassword = true
-        )
+        InputField(password, { password = it; error = "" }, "Password", isPassword = true)
+
+        if (showServer) {
+            Spacer(Modifier.height(10.dp))
+            InputField(serverUrl, { serverUrl = it; error = "" }, "Server URL - e.g. http://192.168.1.20:3000/")
+            Text(
+                "On a physical phone, use the computer's local-network IP while the backend is running.",
+                color = UB.Muted,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+        }
 
         if (error.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
@@ -619,13 +890,26 @@ private fun StudentLoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHe
                 when {
                     email.isBlank() -> error = "Please enter your university email."
                     !email.contains("@") -> error = "Please enter a valid email address."
-                    password.length < 4 -> error = "Password must contain at least 4 characters."
-                    else -> {
+                    password.length < 6 -> error = "Password must contain at least 6 characters."
+                    serverUrl.isBlank() -> error = "Please enter the university server address."
+                    else -> scope.launch {
                         loading = true
-                        onLogin()
+                        error = ""
+                        try {
+                            session.apiBaseUrl = serverUrl
+                            val r = ApiFactory.api(session.apiBaseUrl).login(LoginBody(email.trim(), password))
+                            session.token = r.accessToken
+                            session.name = r.user.fullName
+                            onLogin()
+                        } catch (t: Throwable) {
+                            error = readablePremiumError(t)
+                        } finally {
+                            loading = false
+                        }
                     }
                 }
             },
+            enabled = !loading,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
@@ -635,17 +919,20 @@ private fun StudentLoginScreen(onLogin: () -> Unit, onRegister: () -> Unit, onHe
 
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onRegister) { Text("Create student account") }
+        TextButton(onClick = { showServer = !showServer }) { Text(if (showServer) "Hide connection settings" else "Connection settings") }
         TextButton(onClick = onHelp) { Text("I have a login problem") }
     }
 }
 
 @Composable
-private fun StudentRegisterScreen(onBack: () -> Unit, onNext: () -> Unit) {
+private fun StudentRegisterScreen(session: Session, onBack: () -> Unit, onNext: (String) -> Unit) {
+    val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var studentId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
 
     AuthFrame(title = "Create student account", subtitle = "Complete your academic identity") {
         InputField(name, { name = it; error = "" }, "Full name")
@@ -668,15 +955,27 @@ private fun StudentRegisterScreen(onBack: () -> Unit, onNext: () -> Unit) {
                     name.isBlank() -> error = "Please enter your full name."
                     !email.contains("@") -> error = "Please enter a valid university email."
                     studentId.isBlank() -> error = "Please enter your student ID."
-                    password.length < 4 -> error = "Password is too short."
-                    else -> onNext()
+                    password.length < 6 -> error = "Password must contain at least 6 characters."
+                    else -> scope.launch {
+                        loading = true
+                        error = ""
+                        try {
+                            val r = ApiFactory.api(session.apiBaseUrl).register(RegisterBody(name.trim(), email.trim(), password))
+                            onNext(r.email)
+                        } catch (t: Throwable) {
+                            error = readablePremiumError(t)
+                        } finally {
+                            loading = false
+                        }
+                    }
                 }
             },
+            enabled = !loading,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
         ) {
-            Text("Continue", fontWeight = FontWeight.Black)
+            Text(if (loading) "Creating account..." else "Continue", fontWeight = FontWeight.Black)
         }
 
         TextButton(onClick = onBack) { Text("Back to sign in") }
@@ -684,13 +983,20 @@ private fun StudentRegisterScreen(onBack: () -> Unit, onNext: () -> Unit) {
 }
 
 @Composable
-private fun StudentVerifyScreen(onBack: () -> Unit, onDone: () -> Unit) {
+private fun StudentVerifyScreen(session: Session, email: String, onBack: () -> Unit, onDone: () -> Unit) {
+    val scope = rememberCoroutineScope()
     var code by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
+    var notice by remember { mutableStateOf("") }
 
-    AuthFrame(title = "Verify email", subtitle = "Enter the 6-digit code sent to your university email") {
-        InputField(code, { code = it; error = "" }, "Verification code", KeyboardType.Number)
+    AuthFrame(title = "Verify email", subtitle = "Enter the 6-digit code sent to $email") {
+        InputField(code, { code = it.filter(Char::isDigit).take(6); error = "" }, "Verification code", KeyboardType.Number)
 
+        if (notice.isNotBlank()) {
+            Spacer(Modifier.height(10.dp))
+            Text(notice, color = UB.Green, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
         if (error.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
             Text(error, color = UB.Red, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -699,23 +1005,50 @@ private fun StudentVerifyScreen(onBack: () -> Unit, onDone: () -> Unit) {
         Spacer(Modifier.height(18.dp))
         Button(
             onClick = {
-                if (code.length < 4) error = "Enter the verification code first." else onDone()
+                if (code.length != 6) {
+                    error = "Enter the 6-digit verification code."
+                } else scope.launch {
+                    loading = true
+                    error = ""
+                    try {
+                        val r = ApiFactory.api(session.apiBaseUrl).verifyEmail(VerifyEmailBody(email, code))
+                        session.token = r.accessToken
+                        session.name = r.user.fullName
+                        onDone()
+                    } catch (t: Throwable) {
+                        error = readablePremiumError(t)
+                    } finally {
+                        loading = false
+                    }
+                }
             },
+            enabled = !loading,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = RoundedCornerShape(18.dp),
             colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
         ) {
-            Text("Verify and enter app", fontWeight = FontWeight.Black)
+            Text(if (loading) "Verifying..." else "Verify and enter app", fontWeight = FontWeight.Black)
         }
 
+        TextButton(onClick = {
+            scope.launch {
+                try {
+                    val r = ApiFactory.api(session.apiBaseUrl).resendVerification(ResendVerificationBody(email))
+                    notice = r.message
+                    error = ""
+                } catch (t: Throwable) { error = readablePremiumError(t) }
+            }
+        }) { Text("Resend code") }
         TextButton(onClick = onBack) { Text("Back") }
     }
 }
 
 @Composable
 private fun StudentHomeScreen(
+    name: String,
     categories: List<CategoryUi>,
     bookings: List<BookingUi>,
+    reportCount: Int,
     onOpenCategory: (CategoryUi) -> Unit,
     onOpenBookings: () -> Unit,
     onWarnings: () -> Unit,
@@ -729,31 +1062,26 @@ private fun StudentHomeScreen(
         item {
             Row(modifier = Modifier.fillMaxWidth().statusBarsPadding(), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Hello, Student", color = UB.Muted, fontWeight = FontWeight.Bold)
+                    Text("Hello, $name", color = UB.Muted, fontWeight = FontWeight.Bold)
                     Text("Book your campus resources", color = UB.Navy, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
                 }
-                Box(
-                    modifier = Modifier.size(46.dp).clip(CircleShape).background(UB.Blue),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Y", color = Color.White, fontWeight = FontWeight.Black)
+                Box(modifier = Modifier.size(46.dp).clip(CircleShape).background(UB.Blue), contentAlignment = Alignment.Center) {
+                    Text(name.trim().firstOrNull()?.uppercase() ?: "S", color = Color.White, fontWeight = FontWeight.Black)
                 }
             }
         }
 
-        item {
-            HomeHeroCard(onBookings = onOpenBookings, onWarnings = onWarnings)
-        }
+        item { HomeHeroCard(onBookings = onOpenBookings, onWarnings = onWarnings) }
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                HomeMiniTile("Active", bookings.count { it.status == "Approved" }.toString(), UB.Green, Modifier.weight(1f), onOpenBookings)
+                HomeMiniTile("Active", bookings.count { it.status in listOf("Approved", "Active") }.toString(), UB.Green, Modifier.weight(1f), onOpenBookings)
                 HomeMiniTile("Pending", bookings.count { it.status == "Pending" }.toString(), UB.Orange, Modifier.weight(1f), onOpenBookings)
-                HomeMiniTile("Reports", "2", UB.Red, Modifier.weight(1f), onHelp)
+                HomeMiniTile("Reports", reportCount.toString(), UB.Red, Modifier.weight(1f), onHelp)
             }
         }
 
-        item { SectionTitle("Choose a category", "Every category has its own booking logic") }
+        item { SectionTitle("Choose a category", "Live resources from the university database") }
 
         items(categories) { category ->
             StudentCategoryCard(category = category, onClick = { onOpenCategory(category) })
@@ -856,7 +1184,7 @@ private fun StudentResourceDetailsScreen(resource: ResourceUi, onBack: () -> Uni
 }
 
 @Composable
-private fun StudentAvailabilityScreen(resource: ResourceUi, onBack: () -> Unit, onContinue: () -> Unit) {
+private fun StudentAvailabilityScreen(resource: ResourceUi, onBack: () -> Unit, onContinue: (String, String) -> Unit) {
     var selectedDay by remember { mutableStateOf("Tue") }
     var selectedSlot by remember { mutableStateOf("13:00 - 15:00") }
 
@@ -866,7 +1194,6 @@ private fun StudentAvailabilityScreen(resource: ResourceUi, onBack: () -> Unit, 
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { BackHeader("Availability", resource.name, onBack) }
-
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(listOf("Mon", "Tue", "Wed", "Thu", "Fri")) { day ->
@@ -874,30 +1201,25 @@ private fun StudentAvailabilityScreen(resource: ResourceUi, onBack: () -> Unit, 
                 }
             }
         }
-
         items(listOf("09:00 - 10:00", "10:00 - 12:00", "13:00 - 15:00", "15:00 - 17:00")) { slot ->
-            AvailabilitySlot(
-                slot = slot,
-                selected = selectedSlot == slot,
-                unavailable = slot == "10:00 - 12:00",
-                color = resource.color,
-                onSelect = { selectedSlot = slot }
-            )
+            AvailabilitySlot(slot = slot, selected = selectedSlot == slot, unavailable = false, color = resource.color, onSelect = { selectedSlot = slot })
         }
-
+        item {
+            Text("Availability is checked live against the university database before you continue.", color = UB.Muted, fontSize = 13.sp)
+        }
         item {
             Button(
-                onClick = onContinue,
+                onClick = { onContinue(selectedDay, selectedSlot) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = resource.color)
-            ) { Text("Continue with $selectedDay, $selectedSlot", fontWeight = FontWeight.Black) }
+            ) { Text("Check $selectedDay, $selectedSlot", fontWeight = FontWeight.Black) }
         }
     }
 }
 
 @Composable
-private fun StudentBookingReviewScreen(resource: ResourceUi, onBack: () -> Unit, onSubmit: () -> Unit) {
+private fun StudentBookingReviewScreen(resource: ResourceUi, day: String, slot: String, onBack: () -> Unit, onSubmit: (String) -> Unit) {
     var purpose by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
 
@@ -907,43 +1229,25 @@ private fun StudentBookingReviewScreen(resource: ResourceUi, onBack: () -> Unit,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { BackHeader("Confirm booking", "Review request before sending", onBack) }
-
         item {
-            InfoPanel(
-                "Booking summary",
-                listOf(
-                    "Resource: ${resource.name}",
-                    "Location: ${resource.location}",
-                    "Selected time: Tuesday 13:00 - 15:00",
-                    "Current status: ${resource.status}"
-                )
-            )
+            InfoPanel("Booking summary", listOf(
+                "Resource: ${resource.name}",
+                "Location: ${resource.location}",
+                "Selected time: $day $slot",
+                "Current status: ${resource.status}"
+            ))
         }
-
         item {
-            InputField(
-                value = purpose,
-                onValueChange = {
-                    purpose = it
-                    error = ""
-                },
-                label = "Purpose of booking"
-            )
+            InputField(purpose, { purpose = it; error = "" }, "Purpose of booking")
             if (error.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
                 Text(error, color = UB.Red, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
-
-        item {
-            InfoPanel("Before submitting", listOf("I will return the resource on time.", "I will report damage or missing items.", "I accept the university usage rules."))
-        }
-
+        item { InfoPanel("Before submitting", listOf("I will return the resource on time.", "I will report damage or missing items.", "I accept the university usage rules.")) }
         item {
             Button(
-                onClick = {
-                    if (purpose.length < 3) error = "Please write a short purpose for this booking." else onSubmit()
-                },
+                onClick = { if (purpose.length < 3) error = "Please write a short purpose for this booking." else onSubmit(purpose.trim()) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = UB.Green)
@@ -1099,7 +1403,7 @@ private fun StudentRateExperienceScreen(onBack: () -> Unit, onDone: () -> Unit) 
 }
 
 @Composable
-private fun StudentReportProblemScreen(resourceName: String, onBack: () -> Unit, onSubmit: (String) -> Unit) {
+private fun StudentReportProblemScreen(resourceName: String, onBack: () -> Unit, onSubmit: (String, String) -> Unit) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var error by remember { mutableStateOf("") }
@@ -1110,14 +1414,7 @@ private fun StudentReportProblemScreen(resourceName: String, onBack: () -> Unit,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { BackHeader("Report Problem", resourceName, onBack) }
-
-        item {
-            InfoPanel(
-                "Problem types",
-                listOf("Broken equipment", "Missing item", "Dirty room", "Door left open", "Unsafe situation")
-            )
-        }
-
+        item { InfoPanel("Problem types", listOf("Broken equipment", "Missing item", "Dirty room", "Door left open", "Unsafe situation")) }
         item {
             InputField(title, { title = it; error = "" }, "Problem title")
             Spacer(Modifier.height(10.dp))
@@ -1127,18 +1424,13 @@ private fun StudentReportProblemScreen(resourceName: String, onBack: () -> Unit,
                 Text(error, color = UB.Red, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
-
         item {
             Button(
-                onClick = {
-                    if (title.length < 3) error = "Please enter a clear problem title." else onSubmit(title)
-                },
+                onClick = { if (title.length < 3) error = "Please enter a clear problem title." else onSubmit(title.trim(), description.trim()) },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = UB.Red)
-            ) {
-                Text("Send report to staff", fontWeight = FontWeight.Black)
-            }
+            ) { Text("Send report to staff", fontWeight = FontWeight.Black) }
         }
     }
 }
@@ -1216,6 +1508,8 @@ private fun StudentHelpScreen(onBack: () -> Unit) {
 
 @Composable
 private fun StudentProfileScreen(
+    name: String,
+    server: String,
     onWarnings: () -> Unit,
     onReports: () -> Unit,
     onHelp: () -> Unit,
@@ -1227,23 +1521,22 @@ private fun StudentProfileScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { AppHeader("Profile", "Student account and responsibility") }
-
         item {
             Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(Color.White)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(66.dp).clip(CircleShape).background(UB.Blue), contentAlignment = Alignment.Center) {
-                        Text("Y", color = Color.White, fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium)
+                        Text(name.trim().firstOrNull()?.uppercase() ?: "S", color = Color.White, fontWeight = FontWeight.Black, style = MaterialTheme.typography.headlineMedium)
                     }
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text("University Student", color = UB.Navy, fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
-                        Text("Verified student account", color = UB.Muted)
+                        Text(name, color = UB.Navy, fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
+                        Text("Verified university account", color = UB.Muted)
                         Text("Booking permission: enabled", color = UB.Green, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
         }
-
+        item { InfoPanel("Connection", listOf("API: $server", "Authentication: JWT", "Data: PostgreSQL via NestJS")) }
         item { ProfileAction("My reports", "Problems sent to staff and technicians", onReports) }
         item { ProfileAction("Warnings center", "Responsibility records and notices", onWarnings) }
         item { ProfileAction("Help center", "Login, booking and support", onHelp) }
