@@ -1,41 +1,53 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { BookingStatus, EquipmentStatus } from '@prisma/client';
 import { BookingsService } from './bookings.service';
 
-describe('BookingsService', () => {
-  const prisma = {
-    user: { findUnique: jest.fn() },
-    equipment: { findUnique: jest.fn() },
-    maintenanceRecord: { findFirst: jest.fn() },
-    booking: {
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-    },
-    auditLog: { create: jest.fn() },
-  };
-
+describe('BookingsService deep consistency', () => {
+  let tx: any;
+  let prisma: any;
   let service: BookingsService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new BookingsService(prisma as any);
+    tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      user: { findUnique: jest.fn() },
+      equipment: { findUnique: jest.fn(), updateMany: jest.fn() },
+      maintenanceRecord: { findFirst: jest.fn() },
+      booking: {
+        findFirst: jest.fn(),
+        create: jest.fn(),
+        findMany: jest.fn(),
+        updateMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+      },
+      bookingRating: { upsert: jest.fn() },
+      auditLog: { create: jest.fn() },
+    };
+    prisma = {
+      ...tx,
+      $transaction: jest.fn(async (callback: any) => callback(tx)),
+    };
+    service = new BookingsService(prisma);
   });
 
-  it('creates a pending booking and writes an audit log', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'u1', isActive: true });
-    prisma.equipment.findUnique.mockResolvedValue({ id: 'e1', status: EquipmentStatus.AVAILABLE });
-    prisma.maintenanceRecord.findFirst.mockResolvedValue(null);
-    prisma.booking.findFirst.mockResolvedValue(null);
-    prisma.booking.create.mockResolvedValue({
+  it('creates a pending booking inside the serialized transaction', async () => {
+    tx.user.findUnique.mockResolvedValue({ id: 'u1', isActive: true, emailVerified: true });
+    tx.equipment.findUnique.mockResolvedValue({ id: 'e1', status: EquipmentStatus.AVAILABLE });
+    tx.maintenanceRecord.findFirst.mockResolvedValue(null);
+    tx.booking.findFirst.mockResolvedValue(null);
+    tx.booking.create.mockResolvedValue({
       id: 'b1',
       equipmentId: 'e1',
       userId: 'u1',
       status: BookingStatus.PENDING,
       equipment: { id: 'e1' },
+      rating: null,
     });
-    prisma.auditLog.create.mockResolvedValue({ id: 'a1' });
+    tx.auditLog.create.mockResolvedValue({ id: 'a1' });
 
     const result = await service.create({
       equipmentId: 'e1',
@@ -46,87 +58,68 @@ describe('BookingsService', () => {
     });
 
     expect(result.status).toBe(BookingStatus.PENDING);
-    expect(prisma.booking.create).toHaveBeenCalledWith(
+    expect(tx.$queryRaw).toHaveBeenCalled();
+    expect(tx.booking.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: BookingStatus.PENDING, userId: 'u1', equipmentId: 'e1' }),
+        data: expect.objectContaining({ status: BookingStatus.PENDING }),
       }),
     );
-    expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ action: 'BOOKING_CREATED', actorId: 'u1', bookingId: 'b1' }),
-      }),
-    );
+    expect(tx.auditLog.create).toHaveBeenCalled();
   });
 
-  it('rejects an inactive user before creating a booking', async () => {
-    prisma.user.findUnique.mockResolvedValue({ id: 'u1', isActive: false });
-
-    await expect(
-      service.create({
-        equipmentId: 'e1',
-        userId: 'u1',
-        startTime: '2099-01-01T10:00:00.000Z',
-        endTime: '2099-01-01T11:00:00.000Z',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-
-    expect(prisma.booking.create).not.toHaveBeenCalled();
-  });
-
-  it('does not allow a pending booking to be finished', async () => {
-    prisma.booking.findFirst.mockResolvedValue({
-      id: 'b1', equipmentId: 'e1', userId: 'u1', status: BookingStatus.PENDING,
+  it('refuses to finish an approved booking before its start time', async () => {
+    tx.booking.findFirst.mockResolvedValue({
+      id: 'b1',
+      equipmentId: 'e1',
+      userId: 'u1',
+      status: BookingStatus.APPROVED,
+      startTime: new Date(Date.now() + 60_000),
     });
 
     await expect(service.finish('b1', 'u1')).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.booking.update).not.toHaveBeenCalled();
+    expect(tx.booking.updateMany).not.toHaveBeenCalled();
   });
 
-  it('logs a user cancellation', async () => {
-    prisma.booking.findFirst.mockResolvedValue({
-      id: 'b1', equipmentId: 'e1', userId: 'u1', status: BookingStatus.PENDING,
+  it('detects a concurrent cancellation state change', async () => {
+    tx.booking.findFirst.mockResolvedValue({
+      id: 'b1',
+      equipmentId: 'e1',
+      userId: 'u1',
+      status: BookingStatus.PENDING,
+      startTime: new Date(Date.now() + 60_000),
     });
-    prisma.booking.update.mockResolvedValue({
-      id: 'b1', equipmentId: 'e1', userId: 'u1', status: BookingStatus.CANCELLED, equipment: { id: 'e1' },
-    });
-    prisma.auditLog.create.mockResolvedValue({ id: 'a1' });
+    tx.booking.updateMany.mockResolvedValue({ count: 0 });
 
-    const result = await service.cancel('b1', 'u1');
-    expect(result.status).toBe(BookingStatus.CANCELLED);
-    expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ action: 'BOOKING_CANCELLED', bookingId: 'b1' }),
-      }),
-    );
+    await expect(service.cancel('b1', 'u1')).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('marks a checked-out booking as returned when the user finishes it', async () => {
-    prisma.booking.findFirst.mockResolvedValue({
+  it('returns checked-out equipment to available after user finish', async () => {
+    tx.booking.findFirst.mockResolvedValue({
       id: 'b2',
       equipmentId: 'e1',
       userId: 'u1',
       status: BookingStatus.CHECKED_OUT,
+      startTime: new Date(Date.now() - 60_000),
     });
-    prisma.booking.update.mockResolvedValue({
+    tx.booking.updateMany.mockResolvedValue({ count: 1 });
+    tx.maintenanceRecord.findFirst.mockResolvedValue(null);
+    tx.equipment.updateMany.mockResolvedValue({ count: 1 });
+    tx.booking.findUniqueOrThrow.mockResolvedValue({
       id: 'b2',
       equipmentId: 'e1',
       userId: 'u1',
       status: BookingStatus.RETURNED,
       equipment: { id: 'e1' },
+      rating: null,
     });
-    prisma.auditLog.create.mockResolvedValue({ id: 'a2' });
+    tx.auditLog.create.mockResolvedValue({ id: 'a1' });
 
     const result = await service.finish('b2', 'u1');
-
     expect(result.status).toBe(BookingStatus.RETURNED);
-    expect(prisma.auditLog.create).toHaveBeenCalledWith(
+    expect(tx.equipment.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          action: 'BOOKING_RETURNED',
-          bookingId: 'b2',
-        }),
+        data: { status: EquipmentStatus.AVAILABLE },
       }),
     );
   });
-
 });

@@ -50,17 +50,23 @@ enum RepairTicketStatus {
 }
 
 model User {
-  id                        String    @id @default(cuid())
-  fullName                  String
-  email                     String    @unique
-  password                  String
-  role                      UserRole  @default(STUDENT)
-  isActive                  Boolean   @default(true)
-  emailVerified             Boolean   @default(true)
-  verificationCodeHash      String?
-  verificationCodeExpiresAt DateTime?
+  id                            String    @id @default(cuid())
+  fullName                      String
+  studentId                     String?   @unique
+  email                         String    @unique
+  password                      String
+  role                          UserRole  @default(STUDENT)
+  isActive                      Boolean   @default(true)
+  emailVerified                 Boolean   @default(false)
+  verificationCodeHash          String?
+  verificationCodeExpiresAt     DateTime?
+  verificationFailedAttempts    Int       @default(0)
+  verificationResendAvailableAt DateTime?
+  failedLoginAttempts           Int       @default(0)
+  loginLockedUntil              DateTime?
 
   bookings         Booking[]
+  ratings          BookingRating[]
   auditLogs        AuditLog[]     @relation("ActorAuditLogs")
   repairTickets    RepairTicket[] @relation("TechnicianTickets")
   submittedReports RepairTicket[] @relation("ReporterTickets")
@@ -99,8 +105,9 @@ model Booking {
   status      BookingStatus @default(PENDING)
   reason      String?
 
-  equipment Equipment  @relation(fields: [equipmentId], references: [id])
-  user      User       @relation(fields: [userId], references: [id])
+  equipment Equipment     @relation(fields: [equipmentId], references: [id])
+  user      User          @relation(fields: [userId], references: [id])
+  rating    BookingRating?
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
@@ -109,6 +116,22 @@ model Booking {
   @@index([equipmentId, startTime, endTime])
   @@index([userId])
   @@index([status])
+}
+
+model BookingRating {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  userId    String
+  score     Int
+  comment   String?
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model MaintenanceRecord {

@@ -1,49 +1,56 @@
-import { ConflictException } from '@nestjs/common';
-import { EquipmentStatus, MaintenanceStatus } from '@prisma/client';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BookingStatus, EquipmentStatus } from '@prisma/client';
 import { EquipmentService } from './equipment.service';
 
-describe('EquipmentService hardening', () => {
-  const prisma = {
-    equipment: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-    maintenanceRecord: { findFirst: jest.fn() },
-    auditLog: { create: jest.fn() },
-  };
-
+describe('EquipmentService consistency', () => {
+  let prisma: any;
+  let tx: any;
   let service: EquipmentService;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    service = new EquipmentService(prisma as any);
+    tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      equipment: {
+        findUnique: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      booking: { findFirst: jest.fn() },
+      maintenanceRecord: { findFirst: jest.fn() },
+      auditLog: { create: jest.fn() },
+    };
+    prisma = {
+      equipment: { findMany: jest.fn(), findUnique: jest.fn() },
+      $transaction: jest.fn(async (callback: any) => callback(tx)),
+    };
+    service = new EquipmentService(prisma);
   });
 
-  it('returns equipment detail without loading unrelated operational relations', async () => {
-    prisma.equipment.findUnique.mockResolvedValue({
+  it('rejects manually forcing CHECKED_OUT because booking owns that state', async () => {
+    tx.equipment.findUnique.mockResolvedValue({
       id: 'e1',
-      name: 'Camera',
       status: EquipmentStatus.AVAILABLE,
     });
 
-    await service.findOne('e1');
-
-    expect(prisma.equipment.findUnique).toHaveBeenCalledWith({
-      where: { id: 'e1' },
-    });
+    await expect(
+      service.updateStatus({
+        equipmentId: 'e1',
+        status: EquipmentStatus.CHECKED_OUT,
+        actorId: 'admin1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('rejects AVAILABLE while active maintenance exists', async () => {
-    prisma.equipment.findUnique.mockResolvedValue({
+  it('does not mark equipment AVAILABLE while a checked-out booking exists', async () => {
+    tx.equipment.findUnique.mockResolvedValue({
       id: 'e1',
-      status: EquipmentStatus.UNDER_MAINTENANCE,
+      status: EquipmentStatus.RESERVED,
     });
-    prisma.maintenanceRecord.findFirst.mockResolvedValue({
-      id: 'm1',
-      status: MaintenanceStatus.ACTIVE,
-    });
+    tx.booking.findFirst
+      .mockResolvedValueOnce({ id: 'b1', status: BookingStatus.CHECKED_OUT })
+      .mockResolvedValueOnce({ id: 'b1', status: BookingStatus.CHECKED_OUT });
+    tx.maintenanceRecord.findFirst.mockResolvedValue(null);
 
     await expect(
       service.updateStatus({
@@ -52,7 +59,32 @@ describe('EquipmentService hardening', () => {
         actorId: 'admin1',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
 
-    expect(prisma.equipment.update).not.toHaveBeenCalled();
+  it('updates a safe manual status atomically and writes its audit event', async () => {
+    tx.equipment.findUnique.mockResolvedValue({
+      id: 'e1',
+      status: EquipmentStatus.RETIRED,
+    });
+    tx.booking.findFirst.mockResolvedValue(null);
+    tx.maintenanceRecord.findFirst.mockResolvedValue(null);
+    tx.equipment.updateMany.mockResolvedValue({ count: 1 });
+    tx.equipment.findUniqueOrThrow.mockResolvedValue({
+      id: 'e1',
+      status: EquipmentStatus.AVAILABLE,
+    });
+
+    const result = await service.updateStatus({
+      equipmentId: 'e1',
+      status: EquipmentStatus.AVAILABLE,
+      actorId: 'admin1',
+    });
+
+    expect(result.equipment.status).toBe(EquipmentStatus.AVAILABLE);
+    expect(tx.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: 'EQUIPMENT_STATUS_UPDATED' }),
+      }),
+    );
   });
 });

@@ -15,6 +15,13 @@ export function configureApplication(app: INestApplication) {
       'Permissions-Policy',
       'camera=(), microphone=(), geolocation=()',
     );
+    response.setHeader('Cache-Control', 'no-store');
+    if (process.env.NODE_ENV === 'production') {
+      response.setHeader(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains',
+      );
+    }
     next();
   });
 
@@ -32,6 +39,7 @@ export function configureApplication(app: INestApplication) {
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
       transformOptions: { enableImplicitConversion: true },
     }),
@@ -45,12 +53,12 @@ export function configureApplication(app: INestApplication) {
     .setDescription(
       'University equipment booking, maintenance, repair, administration, and authentication API.',
     )
-    .setVersion('1.0')
+    .setVersion('1.2')
     .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: { persistAuthorization: true },
+    swaggerOptions: { persistAuthorization: false },
   });
 }

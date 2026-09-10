@@ -15,7 +15,7 @@ describe('JWT production configuration', () => {
   it('rejects a missing production secret', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.JWT_SECRET;
-    expect(() => getJwtSecret()).toThrow('JWT_SECRET is required in production.');
+    expect(() => getJwtSecret()).toThrow('JWT_SECRET is required unless NODE_ENV is explicitly development or test.');
   });
 
   it('rejects a short production secret', () => {

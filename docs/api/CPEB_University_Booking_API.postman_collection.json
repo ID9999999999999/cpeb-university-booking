@@ -18,6 +18,10 @@
       "value": "student@example.com"
     },
     {
+      "key": "studentId",
+      "value": "STU-POSTMAN-001"
+    },
+    {
       "key": "password",
       "value": "StudentPassword123!"
     },
@@ -113,9 +117,23 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Postman Student\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+              "raw": "{\n  \"fullName\": \"Postman Student\",\n  \"studentId\": \"{{studentId}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.developmentVerificationCode) pm.collectionVariables.set('verificationCode', data.developmentVerificationCode);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Verify email",
@@ -148,7 +166,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200) {",
+                  "if (pm.response.code === 201) {",
                   "  const data = pm.response.json();",
                   "  if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
                   "}"
@@ -541,6 +559,43 @@
                 "{{bookingId}}",
                 "finish"
               ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rate finished booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bookings",
+                "{{bookingId}}",
+                "rating"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 5,\n  \"comment\": \"Postman rating\"\n}"
             },
             "auth": {
               "type": "bearer",

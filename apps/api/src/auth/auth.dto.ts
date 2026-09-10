@@ -1,42 +1,71 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ example: 'Yasser Student' })
-  @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(120)
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(120)
   fullName!: string;
 
+  @ApiProperty({ example: 'STU-2026-001' })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(64)
+  @Matches(/^[A-Za-z0-9._\/-]+$/, {
+    message: 'studentId contains unsupported characters',
+  })
+  studentId!: string;
+
   @ApiProperty({ example: 'student@example.edu' })
-  @IsEmail() @MaxLength(254)
+  @IsEmail()
+  @MaxLength(254)
   email!: string;
 
-  @ApiProperty({ example: 'StrongPassword123', minLength: 6 })
-  @IsString() @MinLength(6) @MaxLength(128)
+  @ApiProperty({ example: 'StrongPassword123', minLength: 8 })
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
   password!: string;
 }
 
 export class VerifyEmailDto {
   @ApiProperty({ example: 'student@example.edu' })
-  @IsEmail() @MaxLength(254)
+  @IsEmail()
+  @MaxLength(254)
   email!: string;
 
   @ApiProperty({ example: '123456' })
-  @IsString() @Matches(/^\d{6}$/)
+  @IsString()
+  @Matches(/^\d{6}$/)
   code!: string;
 }
 
 export class ResendVerificationDto {
   @ApiProperty({ example: 'student@example.edu' })
-  @IsEmail() @MaxLength(254)
+  @IsEmail()
+  @MaxLength(254)
   email!: string;
 }
 
 export class LoginDto {
   @ApiProperty({ example: 'student@example.edu' })
-  @IsEmail() @MaxLength(254)
+  @IsEmail()
+  @MaxLength(254)
   email!: string;
 
   @ApiProperty({ example: 'StrongPassword123' })
-  @IsString() @IsNotEmpty() @MaxLength(128)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
   password!: string;
 }

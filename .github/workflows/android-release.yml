@@ -1,26 +1,35 @@
-﻿name: Publish Android APK
+name: Publish Signed CPEB Android Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v1.2.0
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: cpeb-android-release
-  cancel-in-progress: true
+  group: cpeb-signed-android-release
+  cancel-in-progress: false
 
 jobs:
-  publish-apk:
-    name: Build and Publish Android APK
+  signed-release:
+    name: Build, verify, and publish signed release APK
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     defaults:
       run:
         working-directory: apps/android
+
+    env:
+      CPEB_RELEASE_API_BASE_URL: ${{ secrets.CPEB_RELEASE_API_BASE_URL }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
     steps:
       - name: Checkout repository
@@ -33,27 +42,92 @@ jobs:
           java-version: 17
           cache: gradle
 
+      - name: Validate release configuration
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          test -n "$CPEB_RELEASE_API_BASE_URL"
+          case "$CPEB_RELEASE_API_BASE_URL" in https://*) ;; *) echo "Release backend must use HTTPS"; exit 1;; esac
+          if ! printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z][0-9A-Za-z.-]*)?$'; then
+            echo "Release tag must look like v1.2.0 or v1.2.0-rc.1"
+            exit 1
+          fi
+          test -n "$KEYSTORE_B64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/cpeb-release.jks"
+          test -s "$RUNNER_TEMP/cpeb-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/cpeb-release.jks" >> "$GITHUB_ENV"
+
+      - name: Require live production backend readiness
+        working-directory: .
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import ssl
+          import urllib.parse
+          import urllib.request
+
+          base = os.environ['CPEB_RELEASE_API_BASE_URL'].rstrip('/') + '/'
+          url = urllib.parse.urljoin(base, 'readiness')
+          request = urllib.request.Request(
+              url,
+              headers={'User-Agent': 'CPEB-Release-Gate/1.0'},
+          )
+          with urllib.request.urlopen(
+              request,
+              timeout=20,
+              context=ssl.create_default_context(),
+          ) as response:
+              if response.status != 200:
+                  raise SystemExit(f'Backend readiness returned HTTP {response.status}')
+              payload = json.load(response)
+
+          if payload.get('status') != 'ready':
+              raise SystemExit('Backend is not ready')
+          if payload.get('database') != 'connected':
+              raise SystemExit('Backend database is not connected')
+          if int(payload.get('resources', 0)) < 1:
+              raise SystemExit('Backend has no resources')
+          if payload.get('emailVerification') not in {'smtp', 'smtp-connected'}:
+              raise SystemExit('Real SMTP verification is not ready')
+          print('Production backend readiness gate passed')
+          PY
+
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Run Android tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+      - name: Run Android tests and lint
+        run: ./gradlew testDebugUnitTest lintDebug --stacktrace
 
-      - name: Build installable APK
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build signed release APK
+        run: ./gradlew assembleRelease --stacktrace
 
-      - name: Prepare downloadable APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/CPEB-University-Booking.apk
+      - name: Verify APK signature and prepare release asset
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          cp "$APK" "app/build/outputs/apk/release/CPEB-University-Booking.apk"
+          sha256sum "app/build/outputs/apk/release/CPEB-University-Booking.apk" | tee "app/build/outputs/apk/release/CPEB-University-Booking.apk.sha256"
 
-      - name: Publish APK in GitHub Releases
+      - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="android-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
           gh release create "$TAG" \
-            "app/build/outputs/apk/debug/CPEB-University-Booking.apk#CPEB-University-Booking.apk" \
+            "app/build/outputs/apk/release/CPEB-University-Booking.apk#CPEB-University-Booking.apk" \
+            "app/build/outputs/apk/release/CPEB-University-Booking.apk.sha256#SHA-256" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "CPEB Android APK - Build ${GITHUB_RUN_NUMBER}" \
-            --notes "Installable CPEB University Booking Android APK automatically built and tested from the main branch." \
-            --latest
+            --title "CPEB University Booking $TAG" \
+            --notes "Signed Android release configured for the public HTTPS CPEB backend."

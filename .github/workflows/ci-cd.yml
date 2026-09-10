@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - 'deep-stabilization-*'
   pull_request:
     branches:
       - main
@@ -18,7 +19,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend Build and Tests
+    name: Backend Build and Deep Tests
     runs-on: ubuntu-latest
 
     services:
@@ -39,6 +40,8 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cpeb_ci
       JWT_SECRET: cpeb-ci-only-secret-which-is-long-enough-for-tests
+      JWT_EXPIRES_IN_SECONDS: 7200
+      CPEB_DEV_SHOW_VERIFICATION_CODE: 'true'
       NODE_ENV: test
 
     defaults:
@@ -68,8 +71,14 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
-      - name: Apply database migrations
+      - name: Apply all migrations to clean PostgreSQL
         run: npx prisma migrate deploy
+
+      - name: Verify migration status
+        run: npx prisma migrate status
+
+      - name: Seed university resources
+        run: npm run seed:resources
 
       - name: Build NestJS backend
         run: npm run build
@@ -77,8 +86,11 @@ jobs:
       - name: Run backend unit tests with coverage
         run: npm run test:ci
 
-      - name: Run backend E2E tests
+      - name: Run deep PostgreSQL E2E tests
         run: npm run test:e2e -- --runInBand
+
+      - name: Build deployable backend container
+        run: docker build -t cpeb-api-ci .
 
       - name: Upload backend coverage
         if: always()
@@ -90,7 +102,7 @@ jobs:
           retention-days: 14
 
   android:
-    name: Android Build and Tests
+    name: Android Build and Contract Tests
     runs-on: ubuntu-latest
 
     defaults:
@@ -111,13 +123,16 @@ jobs:
       - name: Make Gradle executable
         run: chmod +x gradlew
 
-      - name: Run Android unit tests
+      - name: Run Android unit and API-contract tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
-      - name: Build debug APK
+      - name: Run Android lint
+        run: ./gradlew lintDebug --stacktrace
+
+      - name: Build debug acceptance APK
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload Android APK
+      - name: Upload Android debug artifact
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:

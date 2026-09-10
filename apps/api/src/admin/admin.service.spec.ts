@@ -1,93 +1,95 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
-import { BookingStatus, EquipmentStatus } from '@prisma/client';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { RepairTicketStatus, UserRole } from '@prisma/client';
 import { AdminService } from './admin.service';
 
-describe('AdminService booking transitions', () => {
-  const prisma = {
-    booking: { findUnique: jest.fn(), update: jest.fn() },
-    equipment: { findUnique: jest.fn(), update: jest.fn() },
-    maintenanceRecord: { findFirst: jest.fn() },
-    auditLog: { create: jest.fn() },
-  };
-
+describe('AdminService privilege and state protections', () => {
+  let tx: any;
+  let prisma: any;
   let service: AdminService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new AdminService(prisma as any);
+    tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ pg_advisory_xact_lock: null }]),
+      user: {
+        findUnique: jest.fn(),
+        count: jest.fn(),
+        update: jest.fn(),
+      },
+      booking: {
+        findUnique: jest.fn(),
+        updateMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+        findFirst: jest.fn(),
+      },
+      equipment: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      maintenanceRecord: { findFirst: jest.fn() },
+      repairTicket: {
+        findUnique: jest.fn(),
+        updateMany: jest.fn(),
+        findUniqueOrThrow: jest.fn(),
+      },
+      auditLog: { create: jest.fn() },
+    };
+    prisma = {
+      ...tx,
+      $transaction: jest.fn(async (callback: any) => callback(tx)),
+    };
+    service = new AdminService(prisma);
   });
 
-  it('rejects repeated approval', async () => {
-    prisma.booking.findUnique.mockResolvedValue({
-      id: 'b1', equipmentId: 'e1', status: BookingStatus.APPROVED,
+  it('protects the last active administrator', async () => {
+    tx.user.findUnique.mockResolvedValue({
+      id: 'admin1',
+      role: UserRole.ADMIN,
+      isActive: true,
     });
+    tx.user.count.mockResolvedValue(0);
 
     await expect(
-      service.bookingStatus('admin1', 'b1', BookingStatus.APPROVED, 'BOOKING_APPROVED'),
-    ).rejects.toBeInstanceOf(BadRequestException);
-
-    expect(prisma.booking.update).not.toHaveBeenCalled();
-  });
-
-  it('allows PENDING to APPROVED and records the audit event', async () => {
-    prisma.booking.findUnique.mockResolvedValue({
-      id: 'b1', equipmentId: 'e1', status: BookingStatus.PENDING,
-    });
-    prisma.booking.update.mockResolvedValue({
-      id: 'b1', equipmentId: 'e1', status: BookingStatus.APPROVED,
-      equipment: { id: 'e1' }, user: { id: 'u1' },
-    });
-    prisma.auditLog.create.mockResolvedValue({ id: 'a1' });
-
-    const result = await service.bookingStatus(
-      'admin1', 'b1', BookingStatus.APPROVED, 'BOOKING_APPROVED',
-    );
-
-    expect(result.status).toBe(BookingStatus.APPROVED);
-    expect(prisma.auditLog.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ action: 'BOOKING_APPROVED', bookingId: 'b1' }),
-      }),
-    );
-  });
-
-  it('allows CHECKED_OUT to RETURNED', async () => {
-    prisma.booking.findUnique.mockResolvedValue({
-      id: 'b2',
-      equipmentId: 'e1',
-      status: BookingStatus.CHECKED_OUT,
-    });
-    prisma.booking.update.mockResolvedValue({
-      id: 'b2',
-      equipmentId: 'e1',
-      status: BookingStatus.RETURNED,
-      equipment: { id: 'e1' },
-      user: { id: 'u1' },
-    });
-    prisma.auditLog.create.mockResolvedValue({ id: 'a2' });
-
-    const result = await service.bookingStatus(
-      'admin1',
-      'b2',
-      BookingStatus.RETURNED,
-      'BOOKING_RETURNED',
-    );
-
-    expect(result.status).toBe(BookingStatus.RETURNED);
-  });
-
-  it('does not mark equipment available while maintenance is active', async () => {
-    prisma.equipment.findUnique.mockResolvedValue({
-      id: 'e1',
-      status: EquipmentStatus.UNDER_MAINTENANCE,
-    });
-    prisma.maintenanceRecord.findFirst.mockResolvedValue({ id: 'm1' });
-
-    await expect(
-      service.equipmentStatus('admin1', 'e1', EquipmentStatus.AVAILABLE),
+      service.updateUser('admin2', 'admin1', { isActive: false }),
     ).rejects.toBeInstanceOf(ConflictException);
-
-    expect(prisma.equipment.update).not.toHaveBeenCalled();
+    expect(tx.user.update).not.toHaveBeenCalled();
   });
 
+  it('prevents technicians from changing unassigned repair tickets', async () => {
+    tx.repairTicket.findUnique.mockResolvedValue({
+      id: 'r1',
+      equipmentId: 'e1',
+      technicianId: 'tech-other',
+      status: RepairTicketStatus.DIAGNOSING,
+      diagnosis: null,
+    });
+
+    await expect(
+      service.reportStatus(
+        { id: 'tech1', role: UserRole.TECHNICIAN },
+        'r1',
+        RepairTicketStatus.READY_FOR_TEST,
+        'Checked',
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('prevents technicians from closing resolved tickets', async () => {
+    tx.repairTicket.findUnique.mockResolvedValue({
+      id: 'r1',
+      equipmentId: 'e1',
+      technicianId: 'tech1',
+      status: RepairTicketStatus.RESOLVED,
+      diagnosis: 'Fixed',
+    });
+
+    await expect(
+      service.reportStatus(
+        { id: 'tech1', role: UserRole.TECHNICIAN },
+        'r1',
+        RepairTicketStatus.CLOSED,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
 });

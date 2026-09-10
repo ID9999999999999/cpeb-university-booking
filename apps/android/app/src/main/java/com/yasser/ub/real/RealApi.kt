@@ -3,13 +3,17 @@ package com.yasser.ub.real
 import android.content.Context
 import com.google.gson.annotations.SerializedName
 import com.yasser.ub.BuildConfig
+import okhttp3.OkHttpClient
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
+import java.util.concurrent.TimeUnit
 
 data class UserDto(
     val id: String,
     val fullName: String,
+    val studentId: String?,
     val email: String,
     val role: String,
 )
@@ -23,9 +27,13 @@ data class RegisterResponse(
     val requiresVerification: Boolean,
     val email: String,
     val message: String,
+    val developmentVerificationCode: String? = null,
 )
 
-data class MessageResponse(val message: String)
+data class MessageResponse(
+    val message: String,
+    val developmentVerificationCode: String? = null,
+)
 
 data class HealthDto(
     val status: String,
@@ -33,10 +41,19 @@ data class HealthDto(
     val timestamp: String? = null,
 )
 
+data class ReadinessDto(
+    val status: String,
+    val database: String,
+    val resources: Int,
+    val emailVerification: String,
+    val timestamp: String? = null,
+)
+
 data class LoginBody(val email: String, val password: String)
 
 data class RegisterBody(
     val fullName: String,
+    val studentId: String,
     val email: String,
     val password: String,
 )
@@ -55,6 +72,18 @@ data class EquipmentDto(
     val description: String?,
 )
 
+data class RatingDto(
+    val id: String,
+    val bookingId: String,
+    val userId: String,
+    val score: Int,
+    val comment: String?,
+    val createdAt: String,
+    val updatedAt: String,
+)
+
+data class RatingBody(val score: Int, val comment: String?)
+
 data class BookingBody(
     val equipmentId: String,
     val startTime: String,
@@ -69,6 +98,7 @@ data class BookingDto(
     val status: String,
     val reason: String?,
     val equipment: EquipmentDto,
+    val rating: RatingDto? = null,
 )
 
 data class AvailabilityDto(val available: Boolean, val reason: String)
@@ -93,6 +123,9 @@ data class ReportDto(
 interface RealApi {
     @GET("health")
     suspend fun health(): HealthDto
+
+    @GET("readiness")
+    suspend fun readiness(): ReadinessDto
 
     @POST("auth/login")
     suspend fun login(@Body body: LoginBody): AuthResponse
@@ -141,6 +174,13 @@ interface RealApi {
         @Path("id") id: String,
     ): BookingDto
 
+    @POST("bookings/{id}/rating")
+    suspend fun rate(
+        @Header("Authorization") authorization: String,
+        @Path("id") id: String,
+        @Body body: RatingBody,
+    ): RatingDto
+
     @GET("repair-tickets/mine")
     suspend fun reports(@Header("Authorization") authorization: String): List<ReportDto>
 
@@ -157,8 +197,22 @@ interface RealApi {
     ): ReportDto
 }
 
+private fun normalizeApiBaseUrl(value: String): String {
+    val trimmed = value.trim()
+    val parsed = (if (trimmed.endsWith("/")) trimmed else "$trimmed/").toHttpUrlOrNull()
+        ?: throw IllegalArgumentException("Invalid university server URL")
+
+    if (parsed.scheme != "http" && parsed.scheme != "https") {
+        throw IllegalArgumentException("University server URL must use HTTP or HTTPS")
+    }
+    if (!BuildConfig.DEBUG && parsed.scheme != "https") {
+        throw IllegalArgumentException("Release builds require an HTTPS university server")
+    }
+    return parsed.toString()
+}
+
 class Session(context: Context) {
-    private val preferences = context.getSharedPreferences("cpeb_session", 0)
+    private val preferences = context.getSharedPreferences("cpeb_session", Context.MODE_PRIVATE)
 
     var token: String?
         get() = preferences.getString("token", null)
@@ -168,40 +222,89 @@ class Session(context: Context) {
         get() = preferences.getString("name", null)
         set(value) { preferences.edit().putString("name", value).apply() }
 
+    var studentId: String?
+        get() = preferences.getString("student_id", null)
+        set(value) { preferences.edit().putString("student_id", value).apply() }
+
+    var pendingEmail: String?
+        get() = preferences.getString("pending_email", null)
+        set(value) { preferences.edit().putString("pending_email", value).apply() }
+
     var apiBaseUrl: String
-        get() = preferences.getString("api_base_url", BuildConfig.CPEB_API_BASE_URL) ?: BuildConfig.CPEB_API_BASE_URL
+        get() {
+            val releaseDefault = normalizeApiBaseUrl(BuildConfig.CPEB_API_BASE_URL)
+            if (!BuildConfig.DEBUG) return releaseDefault
+
+            val persisted = preferences.getString("api_base_url", null) ?: return releaseDefault
+            return runCatching { normalizeApiBaseUrl(persisted) }.getOrElse {
+                // A malformed URL left by an older debug build must never crash
+                // application startup. Repair the preference and use the known
+                // build default instead.
+                preferences.edit().remove("api_base_url").apply()
+                releaseDefault
+            }
+        }
         set(value) {
-            val normalized = if (value.trim().endsWith("/")) value.trim() else "${value.trim()}/"
-            preferences.edit().putString("api_base_url", normalized).apply()
+            if (!BuildConfig.DEBUG) return
+            preferences.edit().putString("api_base_url", normalizeApiBaseUrl(value)).apply()
         }
 
-    fun clear() = preferences.edit().remove("token").remove("name").apply()
+    fun saveAuthenticatedUser(response: AuthResponse) {
+        preferences.edit()
+            .putString("token", response.accessToken)
+            .putString("name", response.user.fullName)
+            .putString("student_id", response.user.studentId)
+            .remove("pending_email")
+            .apply()
+    }
 
-    fun bearer() = "Bearer ${token ?: ""}"
+    fun clearAuthentication() = preferences.edit()
+        .remove("token")
+        .remove("name")
+        .remove("student_id")
+        .apply()
+
+    fun clear() = preferences.edit()
+        .remove("token")
+        .remove("name")
+        .remove("student_id")
+        .remove("pending_email")
+        .apply()
+
+    fun bearer(): String {
+        val current = token ?: throw IllegalStateException("No authenticated session")
+        return "Bearer $current"
+    }
 }
 
 object ApiFactory {
     val BASE_URL: String
-        get() = BuildConfig.CPEB_API_BASE_URL
+        get() = normalizeApiBaseUrl(BuildConfig.CPEB_API_BASE_URL)
 
     private var cachedBaseUrl: String? = null
     private var cachedApi: RealApi? = null
 
+    @Synchronized
     fun api(baseUrl: String): RealApi {
-        val normalized = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-        val current = cachedApi
-        if (current != null && cachedBaseUrl == normalized) return current
-        return synchronized(this) {
-            if (cachedApi == null || cachedBaseUrl != normalized) {
-                cachedBaseUrl = normalized
-                cachedApi = Retrofit.Builder()
-                    .baseUrl(normalized)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build()
-                    .create(RealApi::class.java)
-            }
-            cachedApi!!
+        val normalized = normalizeApiBaseUrl(baseUrl)
+        if (cachedApi == null || cachedBaseUrl != normalized) {
+            val client = OkHttpClient.Builder()
+                .connectTimeout(12, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .writeTimeout(20, TimeUnit.SECONDS)
+                .callTimeout(30, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(true)
+                .build()
+
+            cachedBaseUrl = normalized
+            cachedApi = Retrofit.Builder()
+                .baseUrl(normalized)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(RealApi::class.java)
         }
+        return cachedApi!!
     }
 
     val api: RealApi

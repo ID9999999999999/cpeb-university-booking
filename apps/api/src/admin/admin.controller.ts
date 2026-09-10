@@ -9,13 +9,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
-import {
-  BookingStatus,
-  EquipmentStatus,
-  MaintenanceStatus,
-  RepairTicketStatus,
-  UserRole,
-} from '@prisma/client';
+import { BookingStatus, UserRole } from '@prisma/client';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -26,9 +20,15 @@ import {
   AdminEquipmentStatusDto,
   AdminMaintenanceStatusDto,
   AssignReportDto,
+  AuditQueryDto,
+  BookingsQueryDto,
+  EquipmentQueryDto,
+  MaintenanceQueryDto,
   RejectBookingDto,
+  ReportsQueryDto,
   ReportStatusDto,
   UpdateUserDto,
+  UsersQueryDto,
 } from './admin.dto';
 import { AdminService } from './admin.service';
 
@@ -36,25 +36,28 @@ import { AdminService } from './admin.service';
 @ApiBearerAuth()
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
 export class AdminController {
   constructor(private readonly service: AdminService) {}
 
   private actor(request: any) {
-    return request.user?.id ?? request.user?.userId ?? request.user?.sub;
+    return {
+      id: request.user?.id ?? request.user?.userId ?? request.user?.sub,
+      role: request.user?.role as UserRole,
+    };
   }
 
   @Get('dashboard')
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
   dashboard() {
     return this.service.dashboard();
   }
 
   @Get('users')
   @Roles(UserRole.ADMIN)
-  users(@Query('role') role?: UserRole, @Query('active') active?: string) {
+  users(@Query() query: UsersQueryDto) {
     return this.service.users(
-      role,
-      active === undefined ? undefined : active === 'true',
+      query.role,
+      query.active === undefined ? undefined : query.active === 'true',
     );
   }
 
@@ -65,19 +68,20 @@ export class AdminController {
     @Param('id') id: string,
     @Body() body: UpdateUserDto,
   ) {
-    return this.service.updateUser(this.actor(request), id, body);
+    return this.service.updateUser(this.actor(request).id, id, body);
   }
 
   @Get('bookings')
-  bookings(@Query('status') status?: BookingStatus) {
-    return this.service.bookings(status);
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER)
+  bookings(@Query() query: BookingsQueryDto) {
+    return this.service.bookings(query.status);
   }
 
   @Patch('bookings/:id/approve')
   @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER)
   approve(@Request() request: any, @Param('id') id: string) {
     return this.service.bookingStatus(
-      this.actor(request),
+      this.actor(request).id,
       id,
       BookingStatus.APPROVED,
       'BOOKING_APPROVED',
@@ -92,7 +96,7 @@ export class AdminController {
     @Body() body: RejectBookingDto,
   ) {
     return this.service.bookingStatus(
-      this.actor(request),
+      this.actor(request).id,
       id,
       BookingStatus.REJECTED,
       'BOOKING_REJECTED',
@@ -104,7 +108,7 @@ export class AdminController {
   @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER)
   checkout(@Request() request: any, @Param('id') id: string) {
     return this.service.bookingStatus(
-      this.actor(request),
+      this.actor(request).id,
       id,
       BookingStatus.CHECKED_OUT,
       'BOOKING_CHECKED_OUT',
@@ -115,7 +119,7 @@ export class AdminController {
   @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER)
   returnBooking(@Request() request: any, @Param('id') id: string) {
     return this.service.bookingStatus(
-      this.actor(request),
+      this.actor(request).id,
       id,
       BookingStatus.RETURNED,
       'BOOKING_RETURNED',
@@ -123,10 +127,10 @@ export class AdminController {
   }
 
   @Patch('bookings/:id/close')
-  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER)
   close(@Request() request: any, @Param('id') id: string) {
     return this.service.bookingStatus(
-      this.actor(request),
+      this.actor(request).id,
       id,
       BookingStatus.CLOSED,
       'BOOKING_CLOSED',
@@ -134,11 +138,9 @@ export class AdminController {
   }
 
   @Get('equipment')
-  equipment(
-    @Query('category') category?: string,
-    @Query('status') status?: EquipmentStatus,
-  ) {
-    return this.service.equipment(category, status);
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
+  equipment(@Query() query: EquipmentQueryDto) {
+    return this.service.equipment(query.category, query.status);
   }
 
   @Post('equipment')
@@ -147,24 +149,27 @@ export class AdminController {
     @Request() request: any,
     @Body() body: AdminCreateEquipmentDto,
   ) {
-    return this.service.createEquipment(this.actor(request), body);
+    return this.service.createEquipment(this.actor(request).id, body);
   }
 
   @Patch('equipment/:id/status')
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER)
   updateEquipment(
     @Request() request: any,
     @Param('id') id: string,
     @Body() body: AdminEquipmentStatusDto,
   ) {
-    return this.service.equipmentStatus(this.actor(request), id, body.status);
+    return this.service.equipmentStatus(this.actor(request).id, id, body.status);
   }
 
   @Get('reports')
-  reports(@Query('status') status?: RepairTicketStatus) {
-    return this.service.reports(status);
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
+  reports(@Request() request: any, @Query() query: ReportsQueryDto) {
+    return this.service.reports(query.status, this.actor(request));
   }
 
   @Patch('reports/:id/status')
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
   reportStatus(
     @Request() request: any,
     @Param('id') id: string,
@@ -186,33 +191,36 @@ export class AdminController {
     @Body() body: AssignReportDto,
   ) {
     return this.service.assignReport(
-      this.actor(request),
+      this.actor(request).id,
       id,
       body.technicianId,
     );
   }
 
   @Get('maintenance')
-  maintenance(@Query('status') status?: MaintenanceStatus) {
-    return this.service.maintenance(status);
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
+  maintenance(@Query() query: MaintenanceQueryDto) {
+    return this.service.maintenance(query.status);
   }
 
   @Post('maintenance')
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
   createMaintenance(
     @Request() request: any,
     @Body() body: AdminCreateMaintenanceDto,
   ) {
-    return this.service.createMaintenance(this.actor(request), body);
+    return this.service.createMaintenance(this.actor(request).id, body);
   }
 
   @Patch('maintenance/:id/status')
+  @Roles(UserRole.ADMIN, UserRole.LAB_MANAGER, UserRole.TECHNICIAN)
   maintenanceStatus(
     @Request() request: any,
     @Param('id') id: string,
     @Body() body: AdminMaintenanceStatusDto,
   ) {
     return this.service.maintenanceStatus(
-      this.actor(request),
+      this.actor(request).id,
       id,
       body.status,
     );
@@ -220,7 +228,7 @@ export class AdminController {
 
   @Get('audit')
   @Roles(UserRole.ADMIN)
-  audit(@Query('take') take?: string) {
-    return this.service.audit(take ? Number(take) : 100);
+  audit(@Query() query: AuditQueryDto) {
+    return this.service.audit(query.take ?? 100);
   }
 }

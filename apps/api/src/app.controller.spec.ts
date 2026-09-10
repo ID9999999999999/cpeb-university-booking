@@ -1,12 +1,17 @@
-﻿import { Test, TestingModule } from '@nestjs/testing';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { PrismaService } from './prisma/prisma.service';
+import { AuthService } from './auth/auth.service';
 
 describe('AppController', () => {
   let appController: AppController;
 
   const prismaMock = {
     $queryRaw: jest.fn(),
+  };
+
+  const authServiceMock = {
+    checkMailReadiness: jest.fn().mockResolvedValue({ mode: 'smtp', connected: true }),
   };
 
   beforeEach(async () => {
@@ -18,6 +23,10 @@ describe('AppController', () => {
         {
           provide: PrismaService,
           useValue: prismaMock,
+        },
+        {
+          provide: AuthService,
+          useValue: authServiceMock,
         },
       ],
     }).compile();

@@ -337,3 +337,11 @@ All rights reserved.
 ## Android interface
 
 The Android application uses the premium Campus Booking interface with live NestJS/PostgreSQL integration. On a physical phone, open **Connection settings** on the sign-in screen and enter the reachable backend URL (for example, the development computer's LAN address while the backend is running).
+
+## Final stabilization behavior
+
+The premium Android interface is preserved as the visual baseline. Live authentication, resources, bookings, cancellation, completion, ratings, and repair reports use the NestJS/PostgreSQL API. Connection settings are persisted before registration as well as before sign-in.
+
+For automated/local development only, a temporary six-digit verification code can be returned when `CPEB_DEV_SHOW_VERIFICATION_CODE=true` and `NODE_ENV` is explicitly `development` or `test`. Production and staging-like environments never return the code and require working SMTP.
+
+Debug builds can show the premium sample resource catalog as an explicitly identified preview while live resources are unavailable. Release builds never substitute sample data for the production database: they start with live data only and show an error/retry state if the public service is unavailable.
