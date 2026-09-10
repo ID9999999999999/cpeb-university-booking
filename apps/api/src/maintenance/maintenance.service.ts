@@ -60,7 +60,15 @@ export class MaintenanceService {
   }
 
   private async lockEquipment(tx: Prisma.TransactionClient, equipmentId: string) {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))`;
+    // Keep the transaction-level advisory lock, but return a normal integer
+    // instead of PostgreSQL void so Prisma 7 / @prisma/adapter-pg can deserialize it.
+    await tx.$queryRaw<Array<{ locked: number }>>`
+      WITH lock_guard AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))
+      )
+      SELECT 1::int AS locked
+      FROM lock_guard
+    `;
   }
 
   async createMaintenance(input: CreateMaintenanceInput) {
