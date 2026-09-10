@@ -46,7 +46,17 @@ export class BookingsService {
   }
 
   private async lockEquipment(tx: Prisma.TransactionClient, equipmentId: string) {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))`;
+    // Keep the application-level transaction lock, but never expose PostgreSQL's
+    // void return type to Prisma 7 / @prisma/adapter-pg. The MATERIALIZED CTE
+    // guarantees the advisory lock is executed while the outer query returns
+    // only a normal integer column that Prisma can deserialize safely.
+    await tx.$queryRaw<Array<{ locked: number }>>`
+      WITH lock_guard AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))
+      )
+      SELECT 1::int AS locked
+      FROM lock_guard
+    `;
   }
 
   private async availabilityWith(
