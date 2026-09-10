@@ -22,7 +22,15 @@ export class AdminService {
   constructor(private readonly p: PrismaService) {}
 
   private async lockEquipment(tx: Prisma.TransactionClient, equipmentId: string) {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))`;
+    // Execute the transaction advisory lock while returning an integer that
+    // Prisma 7 / @prisma/adapter-pg can deserialize safely.
+    await tx.$queryRaw<Array<{ locked: number }>>`
+      WITH lock_guard AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))
+      )
+      SELECT 1::int AS locked
+      FROM lock_guard
+    `;
   }
 
   async dashboard() {
@@ -90,7 +98,13 @@ export class AdminService {
     }
 
     return this.p.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended('cpeb-admin-role', 0))`;
+      await tx.$queryRaw<Array<{ locked: number }>>`
+        WITH lock_guard AS MATERIALIZED (
+          SELECT pg_advisory_xact_lock(hashtextextended('cpeb-admin-role', 0))
+        )
+        SELECT 1::int AS locked
+        FROM lock_guard
+      `;
       const old = await tx.user.findUnique({ where: { id: userId } });
       if (!old) throw new NotFoundException('User not found');
 

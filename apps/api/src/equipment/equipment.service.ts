@@ -32,7 +32,15 @@ export class EquipmentService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async lockEquipment(tx: Prisma.TransactionClient, equipmentId: string) {
-    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))`;
+    // Execute the transaction advisory lock while returning an integer that
+    // Prisma 7 / @prisma/adapter-pg can deserialize safely.
+    await tx.$queryRaw<Array<{ locked: number }>>`
+      WITH lock_guard AS MATERIALIZED (
+        SELECT pg_advisory_xact_lock(hashtextextended(${equipmentId}, 0))
+      )
+      SELECT 1::int AS locked
+      FROM lock_guard
+    `;
   }
 
   findAll() {
