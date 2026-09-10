@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: cpeb-university-booking-api-v4
+    runtime: docker
+    branch: deep-stabilization-v4-2026-09-10
+    region: frankfurt
+    plan: free
+    autoDeployTrigger: checksPass
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: ./apps/api
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cpeb-postgres-v4
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN_SECONDS
+        value: "7200"
+      - key: CPEB_DEV_SHOW_VERIFICATION_CODE
+        value: "false"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SMTP_CONNECTION_TIMEOUT_MS
+        value: "10000"
+      - key: SMTP_SOCKET_TIMEOUT_MS
+        value: "15000"
+
+databases:
+  - name: cpeb-postgres-v4
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "16"
+    databaseName: cpeb_booking
+    user: cpeb
+    ipAllowList: []
