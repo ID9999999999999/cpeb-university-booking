@@ -213,10 +213,11 @@ private fun normalizeApiBaseUrl(value: String): String {
 
 class Session(context: Context) {
     private val preferences = context.getSharedPreferences("cpeb_session", Context.MODE_PRIVATE)
+    private val secureTokenStore = SecureTokenStore(context.applicationContext)
 
     var token: String?
-        get() = preferences.getString("token", null)
-        set(value) { preferences.edit().putString("token", value).apply() }
+        get() = secureTokenStore.get()
+        set(value) { secureTokenStore.set(value) }
 
     var name: String?
         get() = preferences.getString("name", null)
@@ -250,27 +251,29 @@ class Session(context: Context) {
         }
 
     fun saveAuthenticatedUser(response: AuthResponse) {
+        secureTokenStore.set(response.accessToken)
         preferences.edit()
-            .putString("token", response.accessToken)
             .putString("name", response.user.fullName)
             .putString("student_id", response.user.studentId)
             .remove("pending_email")
             .apply()
     }
+    fun clearAuthentication() {
+        secureTokenStore.clear()
+        preferences.edit()
+            .remove("name")
+            .remove("student_id")
+            .apply()
+    }
 
-    fun clearAuthentication() = preferences.edit()
-        .remove("token")
-        .remove("name")
-        .remove("student_id")
-        .apply()
-
-    fun clear() = preferences.edit()
-        .remove("token")
-        .remove("name")
-        .remove("student_id")
-        .remove("pending_email")
-        .apply()
-
+    fun clear() {
+        secureTokenStore.clear()
+        preferences.edit()
+            .remove("name")
+            .remove("student_id")
+            .remove("pending_email")
+            .apply()
+    }
     fun bearer(): String {
         val current = token ?: throw IllegalStateException("No authenticated session")
         return "Bearer $current"

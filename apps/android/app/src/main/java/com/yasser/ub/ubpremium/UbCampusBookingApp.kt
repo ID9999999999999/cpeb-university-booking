@@ -1,5 +1,6 @@
 package com.yasser.ub.ubpremium
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -103,6 +105,7 @@ private object UB {
 }
 
 internal enum class StudentScreen {
+    SessionCheck,
     Welcome,
     Login,
     Register,
@@ -119,6 +122,7 @@ internal enum class StudentScreen {
     FinishBooking,
     RateExperience,
     ReportProblem,
+    ReportResourcePicker,
     MyReports,
     Warnings,
     Help,
@@ -134,6 +138,47 @@ internal fun requiresAuthenticatedSession(screen: StudentScreen): Boolean =
         else -> true
     }
 
+internal fun previousStudentScreen(
+    screen: StudentScreen,
+    reportReturnScreen: StudentScreen = StudentScreen.ResourceDetails,
+): StudentScreen =
+    when (screen) {
+        StudentScreen.Register -> StudentScreen.Login
+        StudentScreen.Verify -> StudentScreen.Register
+        StudentScreen.Category,
+        StudentScreen.ResourceList -> StudentScreen.Home
+        StudentScreen.ResourceDetails -> StudentScreen.Category
+        StudentScreen.Availability -> StudentScreen.ResourceDetails
+        StudentScreen.BookingReview -> StudentScreen.Availability
+        StudentScreen.BookingSuccess -> StudentScreen.Home
+        StudentScreen.MyBookings -> StudentScreen.Home
+        StudentScreen.BookingTracking -> StudentScreen.MyBookings
+        StudentScreen.FinishBooking -> StudentScreen.BookingTracking
+        StudentScreen.RateExperience -> StudentScreen.BookingTracking
+        StudentScreen.ReportProblem -> reportReturnScreen
+        StudentScreen.ReportResourcePicker -> StudentScreen.MyReports
+        StudentScreen.MyReports -> StudentScreen.Home
+        StudentScreen.Warnings -> StudentScreen.Home
+        StudentScreen.Help -> StudentScreen.Home
+        StudentScreen.Profile -> StudentScreen.Home
+        StudentScreen.SessionCheck,
+        StudentScreen.Welcome,
+        StudentScreen.Login,
+        StudentScreen.Home -> StudentScreen.Home
+    }
+
+internal fun tabForStudentScreen(screen: StudentScreen): String =
+    when (screen) {
+        StudentScreen.MyBookings,
+        StudentScreen.BookingTracking,
+        StudentScreen.FinishBooking,
+        StudentScreen.RateExperience -> "Bookings"
+        StudentScreen.MyReports,
+        StudentScreen.ReportResourcePicker -> "Reports"
+        StudentScreen.Help -> "Help"
+        StudentScreen.Profile -> "Profile"
+        else -> "Home"
+    }
 private enum class ResourceKind {
     Rooms,
     Labs,
@@ -164,11 +209,13 @@ private data class ResourceUi(
     val rules: List<String>
 )
 
-private data class BookingUi(
+internal data class BookingUi(
     val id: String,
     val equipmentId: String,
     val resource: String,
     val time: String,
+    val startTimeIso: String,
+    val endTimeIso: String,
     val status: String,
     val note: String,
     val rated: Boolean = false
@@ -224,7 +271,10 @@ fun UbCampusBookingApp() {
         var pendingStart by remember { mutableStateOf("") }
         var pendingEnd by remember { mutableStateOf("") }
         var busy by remember { mutableStateOf(false) }
+        var refreshing by remember { mutableStateOf(false) }
+        var sessionChecking by remember { mutableStateOf(session.token != null) }
         var globalError by remember { mutableStateOf("") }
+        var reportReturnScreen by remember { mutableStateOf(StudentScreen.ResourceDetails) }
         var usingPreviewResources by remember { mutableStateOf(BuildConfig.DEBUG) }
 
         fun api() = ApiFactory.api(session.apiBaseUrl)
@@ -247,7 +297,8 @@ fun UbCampusBookingApp() {
         }
 
         fun refresh() {
-            if (session.token == null) return
+            if (session.token == null || refreshing) return
+            refreshing = true
             scope.launch {
                 busy = true
                 val errors = mutableListOf<String>()
@@ -263,6 +314,7 @@ fun UbCampusBookingApp() {
                     errors += "Resources: $message"
                     if (session.token == null) {
                         globalError = message
+                        refreshing = false
                         busy = false
                         return@launch
                     }
@@ -277,6 +329,7 @@ fun UbCampusBookingApp() {
                     errors += "Bookings: $message"
                     if (session.token == null) {
                         globalError = message
+                        refreshing = false
                         busy = false
                         return@launch
                     }
@@ -291,12 +344,14 @@ fun UbCampusBookingApp() {
                     errors += "Reports: $message"
                     if (session.token == null) {
                         globalError = message
+                        refreshing = false
                         busy = false
                         return@launch
                     }
                 }
 
                 globalError = errors.joinToString("\n")
+                refreshing = false
                 busy = false
             }
         }
@@ -332,23 +387,42 @@ fun UbCampusBookingApp() {
                     refresh()
                 } catch (t: Throwable) {
                     globalError = authenticatedPremiumError(t)
+                } finally {
+                    sessionChecking = false
                 }
-            } else if (!session.pendingEmail.isNullOrBlank()) {
-                pendingEmail = session.pendingEmail.orEmpty()
-                screen = StudentScreen.Verify
+            } else {
+                sessionChecking = false
+                if (!session.pendingEmail.isNullOrBlank()) {
+                    pendingEmail = session.pendingEmail.orEmpty()
+                    screen = StudentScreen.Verify
+                }
             }
         }
-
         val effectiveScreen =
-            if (session.token == null && requiresAuthenticatedSession(screen)) {
-                StudentScreen.Login
-            } else {
-                screen
+            when {
+                sessionChecking -> StudentScreen.SessionCheck
+                session.token == null && requiresAuthenticatedSession(screen) -> StudentScreen.Login
+                else -> screen
             }
 
+        BackHandler(
+            enabled = !sessionChecking &&
+                screen !in listOf(
+                    StudentScreen.Welcome,
+                    StudentScreen.Login,
+                    StudentScreen.Home,
+                ),
+        ) {
+            globalError = ""
+            val target = previousStudentScreen(screen, reportReturnScreen)
+            screen = target
+            tab = tabForStudentScreen(target)
+        }
         Surface(modifier = Modifier.fillMaxSize(), color = UB.Bg) {
             Box(modifier = Modifier.fillMaxSize()) {
                 when (effectiveScreen) {
+                    StudentScreen.SessionCheck -> StudentSessionCheckingScreen()
+
                     StudentScreen.Welcome -> StudentWelcomeScreen(
                         onStart = { screen = StudentScreen.Login },
                         onSignIn = { screen = StudentScreen.Login }
@@ -387,6 +461,7 @@ fun UbCampusBookingApp() {
                     else -> StudentShell(
                         current = tab,
                         onTab = {
+                            globalError = ""
                             tab = it
                             screen = when (it) {
                                 "Home" -> StudentScreen.Home
@@ -434,7 +509,10 @@ fun UbCampusBookingApp() {
                                     previewMode = usingPreviewResources,
                                     onBack = { screen = StudentScreen.Category },
                                     onBook = { screen = StudentScreen.Availability },
-                                    onReport = { screen = StudentScreen.ReportProblem }
+                                    onReport = {
+                                        reportReturnScreen = StudentScreen.ResourceDetails
+                                        screen = StudentScreen.ReportProblem
+                                    }
                                 )
                             } ?: PremiumEmptyState("No resource selected", "Choose a resource first.")
 
@@ -443,38 +521,39 @@ fun UbCampusBookingApp() {
                                     resource = resource,
                                     onBack = { screen = StudentScreen.ResourceDetails },
                                     onContinue = { day, slot ->
-                                        scope.launch {
+                                        if (!busy) {
                                             busy = true
                                             globalError = ""
-                                            try {
-                                                val (start, end) = selectionToIso(day, slot)
-                                                val result = api().availability(
-                                                    session.bearer(),
-                                                    resource.id,
-                                                    start,
-                                                    end
-                                                )
-                                                if (!result.available) {
-                                                    globalError = result.reason.ifBlank {
-                                                        "This time is not available."
+                                            scope.launch {
+                                                try {
+                                                    val (start, end) = selectionToIso(day.dateMillis, slot)
+                                                    val result = api().availability(
+                                                        session.bearer(),
+                                                        resource.id,
+                                                        start,
+                                                        end
+                                                    )
+                                                    if (!result.available) {
+                                                        globalError = result.reason.ifBlank {
+                                                            "This time is not available. Choose another slot."
+                                                        }
+                                                    } else {
+                                                        pendingDay = day.label
+                                                        pendingSlot = slot
+                                                        pendingStart = start
+                                                        pendingEnd = end
+                                                        screen = StudentScreen.BookingReview
                                                     }
-                                                } else {
-                                                    pendingDay = day
-                                                    pendingSlot = slot
-                                                    pendingStart = start
-                                                    pendingEnd = end
-                                                    screen = StudentScreen.BookingReview
+                                                } catch (t: Throwable) {
+                                                    globalError = authenticatedPremiumError(t)
+                                                } finally {
+                                                    busy = false
                                                 }
-                                            } catch (t: Throwable) {
-                                                globalError = authenticatedPremiumError(t)
-                                            } finally {
-                                                busy = false
                                             }
                                         }
                                     }
                                 )
                             } ?: PremiumEmptyState("No resource selected", "Choose a resource first.")
-
                             StudentScreen.BookingReview -> selectedResource?.let { resource ->
                                 StudentBookingReviewScreen(
                                     resource = resource,
@@ -536,6 +615,9 @@ fun UbCampusBookingApp() {
                                         }
                                         screen = StudentScreen.FinishBooking
                                     },
+                                    onRate = {
+                                        screen = StudentScreen.RateExperience
+                                    },
                                     onCancel = {
                                         scope.launch {
                                             busy = true
@@ -555,6 +637,7 @@ fun UbCampusBookingApp() {
                                             it.id == booking.equipmentId
                                         }
                                         if (selectedResource != null) {
+                                            reportReturnScreen = StudentScreen.BookingTracking
                                             screen = StudentScreen.ReportProblem
                                         } else {
                                             globalError = "The resource for this booking is not loaded."
@@ -591,6 +674,7 @@ fun UbCampusBookingApp() {
                                         }
                                     }
                                     if (selectedResource != null) {
+                                        reportReturnScreen = StudentScreen.BookingTracking
                                         screen = StudentScreen.ReportProblem
                                     } else {
                                         globalError = "The resource for this booking is not loaded."
@@ -626,10 +710,22 @@ fun UbCampusBookingApp() {
                                 }
                             )
 
+                            StudentScreen.ReportResourcePicker -> StudentReportResourcePickerScreen(
+                                resources = resources,
+                                onBack = {
+                                    tab = "Reports"
+                                    screen = StudentScreen.MyReports
+                                },
+                                onOpen = { resource ->
+                                    selectedResource = resource
+                                    reportReturnScreen = StudentScreen.MyReports
+                                    screen = StudentScreen.ReportProblem
+                                }
+                            )
                             StudentScreen.ReportProblem -> selectedResource?.let { resource ->
                                 StudentReportProblemScreen(
                                     resourceName = resource.name,
-                                    onBack = { screen = StudentScreen.ResourceDetails },
+                                    onBack = { screen = reportReturnScreen },
                                     onSubmit = { title, description ->
                                         scope.launch {
                                             busy = true
@@ -659,19 +755,20 @@ fun UbCampusBookingApp() {
                             StudentScreen.MyReports -> StudentReportsScreen(
                                 reports = reports,
                                 onNew = {
-                                    tab = "Home"
-                                    screen = StudentScreen.Home
-                                    globalError = "Choose a resource, open its details, then tap Report issue."
+                                    globalError = ""
+                                    tab = "Reports"
+                                    reportReturnScreen = StudentScreen.MyReports
+                                    screen = StudentScreen.ReportResourcePicker
                                 }
                             )
 
                             StudentScreen.Warnings -> StudentWarningsScreen(onBack = { openHome() })
                             StudentScreen.Help -> StudentHelpScreen(
                                 onBack = {
-                                    screen = if (session.token == null) {
-                                        StudentScreen.Login
+                                    if (session.token == null) {
+                                        screen = StudentScreen.Login
                                     } else {
-                                        StudentScreen.Home
+                                        openHome()
                                     }
                                 }
                             )
@@ -679,7 +776,7 @@ fun UbCampusBookingApp() {
                             StudentScreen.Profile -> StudentProfileScreen(
                                 name = session.name ?: "University Student",
                                 studentId = session.studentId,
-                                server = session.apiBaseUrl,
+
                                 previewMode = usingPreviewResources,
                                 onWarnings = { screen = StudentScreen.Warnings },
                                 onReports = {
@@ -689,6 +786,7 @@ fun UbCampusBookingApp() {
                                 onHelp = { screen = StudentScreen.Help },
                                 onLogout = {
                                     session.clear()
+                                    globalError = ""
                                     bookings.clear()
                                     reports.clear()
                                     resources.clear()
@@ -707,6 +805,12 @@ fun UbCampusBookingApp() {
                 }
 
                 if (busy) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.06f))
+                            .clickable { }
+                    )
                     Card(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -830,6 +934,8 @@ private fun bookingToUi(b: BookingDto): BookingUi = BookingUi(
     equipmentId = b.equipment.id,
     resource = b.equipment.name,
     time = "${formatPremiumDate(b.startTime)} - ${formatPremiumTime(b.endTime)}",
+    startTimeIso = b.startTime,
+    endTimeIso = b.endTime,
     status = when (b.status.uppercase()) {
         "PENDING" -> "Pending"
         "APPROVED" -> "Approved"
@@ -839,7 +945,7 @@ private fun bookingToUi(b: BookingDto): BookingUi = BookingUi(
         "REJECTED" -> "Rejected"
         else -> b.status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
     },
-    note = b.reason ?: "University booking",
+    note = b.reason ?: "No purpose provided",
     rated = b.rating != null
 )
 
@@ -882,16 +988,53 @@ private fun calendarToIso(calendar: Calendar): String {
     return formatter.format(calendar.time)
 }
 
-private fun selectionToIso(day: String, slot: String): Pair<String, String> {
-    val wantedDay = when (day) {
-        "Mon" -> Calendar.MONDAY
-        "Tue" -> Calendar.TUESDAY
-        "Wed" -> Calendar.WEDNESDAY
-        "Thu" -> Calendar.THURSDAY
-        "Fri" -> Calendar.FRIDAY
-        else -> Calendar.MONDAY
+internal fun isValidUniversityEmail(value: String): Boolean {
+    val email = value.trim()
+    return email.length <= 254 &&
+        Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(email)
+}
+
+internal fun isValidStudentId(value: String): Boolean {
+    val id = value.trim()
+    return id.length in 2..64 &&
+        Regex("^[A-Za-z0-9._/-]+$").matches(id)
+}
+
+internal fun bookingCanCancel(
+    booking: BookingUi,
+    nowMillis: Long = System.currentTimeMillis(),
+): Boolean =
+    when (booking.status) {
+        "Pending" -> true
+        "Approved" -> (parseIsoDate(booking.startTimeIso)?.time ?: Long.MIN_VALUE) > nowMillis
+        else -> false
     }
 
+internal fun bookingCanFinish(
+    booking: BookingUi,
+    nowMillis: Long = System.currentTimeMillis(),
+): Boolean {
+    if (booking.status !in listOf("Approved", "Active")) return false
+    val start = parseIsoDate(booking.startTimeIso)?.time ?: return false
+    return start <= nowMillis
+}
+
+internal fun bookingCanRate(booking: BookingUi): Boolean =
+    booking.status == "Finished" && !booking.rated
+
+private val BOOKING_SLOTS = listOf(
+    "09:00 - 10:00",
+    "10:00 - 12:00",
+    "13:00 - 15:00",
+    "15:00 - 17:00",
+)
+
+private data class BookingDayUi(
+    val dateMillis: Long,
+    val label: String,
+)
+
+private fun slotHours(slot: String): Pair<Pair<Int, Int>, Pair<Int, Int>> {
     val parts = slot.split(" - ")
     require(parts.size == 2) { "Invalid time slot" }
 
@@ -901,37 +1044,77 @@ private fun selectionToIso(day: String, slot: String): Pair<String, String> {
         return pieces[0].toInt() to pieces[1].toInt()
     }
 
-    val (startHour, startMinute) = hm(parts[0])
-    val (endHour, endMinute) = hm(parts[1])
-    val now = Calendar.getInstance()
-
-    for (offset in 0..7) {
-        val date = (now.clone() as Calendar).apply {
-            add(Calendar.DAY_OF_YEAR, offset)
-        }
-        if (date.get(Calendar.DAY_OF_WEEK) != wantedDay) continue
-
-        val start = (date.clone() as Calendar).apply {
-            set(Calendar.HOUR_OF_DAY, startHour)
-            set(Calendar.MINUTE, startMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        if (!start.after(now)) continue
-
-        val end = (date.clone() as Calendar).apply {
-            set(Calendar.HOUR_OF_DAY, endHour)
-            set(Calendar.MINUTE, endMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        require(end.after(start)) { "Invalid time slot" }
-        return calendarToIso(start) to calendarToIso(end)
-    }
-
-    throw IllegalArgumentException("Could not find a future slot")
+    return hm(parts[0]) to hm(parts[1])
 }
 
+private fun slotStartMillis(dayMillis: Long, slot: String): Long {
+    val ((startHour, startMinute), _) = slotHours(slot)
+    return Calendar.getInstance().apply {
+        timeInMillis = dayMillis
+        set(Calendar.HOUR_OF_DAY, startHour)
+        set(Calendar.MINUTE, startMinute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+}
+
+private fun upcomingBookingDays(now: Calendar = Calendar.getInstance()): List<BookingDayUi> {
+    val result = mutableListOf<BookingDayUi>()
+    var offset = 0
+
+    while (result.size < 5 && offset < 14) {
+        val day = (now.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, offset)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        val weekday = day.get(Calendar.DAY_OF_WEEK)
+        val isWeekday = weekday in Calendar.MONDAY..Calendar.FRIDAY
+        val hasFutureSlot = BOOKING_SLOTS.any {
+            slotStartMillis(day.timeInMillis, it) > now.timeInMillis
+        }
+
+        if (isWeekday && hasFutureSlot) {
+            result += BookingDayUi(
+                dateMillis = day.timeInMillis,
+                label = SimpleDateFormat("EEE dd MMM", Locale.getDefault()).format(day.time),
+            )
+        }
+        offset++
+    }
+
+    return result
+}
+
+private fun selectionToIso(dayMillis: Long, slot: String): Pair<String, String> {
+    val ((startHour, startMinute), endHm) = slotHours(slot)
+    val (endHour, endMinute) = endHm
+
+    val start = Calendar.getInstance().apply {
+        timeInMillis = dayMillis
+        set(Calendar.HOUR_OF_DAY, startHour)
+        set(Calendar.MINUTE, startMinute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    val end = Calendar.getInstance().apply {
+        timeInMillis = dayMillis
+        set(Calendar.HOUR_OF_DAY, endHour)
+        set(Calendar.MINUTE, endMinute)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+
+    require(start.timeInMillis > System.currentTimeMillis()) {
+        "This time has already passed. Choose another slot."
+    }
+    require(end.after(start)) { "Invalid time slot" }
+
+    return calendarToIso(start) to calendarToIso(end)
+}
 private fun readablePremiumError(t: Throwable): String {
     if (t is retrofit2.HttpException) {
         val raw = t.response()?.errorBody()?.string().orEmpty()
@@ -948,8 +1131,13 @@ private fun readablePremiumError(t: Throwable): String {
         return message ?: raw.takeIf { it.isNotBlank() }
         ?: "The university server rejected the request."
     }
-    return t.message
-        ?: "Cannot connect to the university server. Check Connection settings."
+    if (t is java.net.SocketTimeoutException) {
+        return "University services are taking too long to respond. Please try again."
+    }
+    if (t is java.io.IOException) {
+        return "Could not reach university services. Check your internet connection and try again."
+    }
+    return "Something went wrong. Please try again."
 }
 
 @Composable
@@ -1087,6 +1275,31 @@ private fun StudentShell(current: String, onTab: (String) -> Unit, content: @Com
     }
 }
 
+@Composable
+private fun StudentSessionCheckingScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize().background(UB.Bg),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(Color.White),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 28.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator(strokeWidth = 3.dp)
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    "Checking your university session...",
+                    color = UB.Navy,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+    }
+}
 @Composable
 private fun StudentWelcomeScreen(onStart: () -> Unit, onSignIn: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().background(UB.BlueDark)) {
@@ -1243,7 +1456,7 @@ private fun StudentLoginScreen(
             onClick = {
                 when {
                     email.isBlank() -> error = "Please enter your university email."
-                    !email.contains("@") -> error = "Please enter a valid email address."
+                    !isValidUniversityEmail(email) -> error = "Please enter a valid email address."
                     password.isBlank() -> error = "Please enter your password."
                     !saveServer() -> Unit
                     else -> scope.launch {
@@ -1315,7 +1528,7 @@ private fun StudentRegisterScreen(
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
 
-    AuthFrame(title = "Create student account", subtitle = "Complete your academic identity") {
+    AuthFrame(title = "Create student account", subtitle = "Use your university details to create an account") {
         InputField(name, { name = it; error = "" }, "Full name")
         Spacer(Modifier.height(10.dp))
         InputField(email, { email = it; error = "" }, "University email", KeyboardType.Email)
@@ -1324,7 +1537,6 @@ private fun StudentRegisterScreen(
         Spacer(Modifier.height(10.dp))
         InputField(password, { password = it; error = "" }, "Create password", isPassword = true)
         Spacer(Modifier.height(8.dp))
-        Text("Server: ${session.apiBaseUrl}", color = UB.Muted, fontSize = 12.sp)
 
         if (error.isNotBlank()) {
             Spacer(Modifier.height(10.dp))
@@ -1335,10 +1547,10 @@ private fun StudentRegisterScreen(
         Button(
             onClick = {
                 when {
-                    name.length < 2 -> error = "Please enter your full name."
-                    !email.contains("@") -> error = "Please enter a valid university email."
-                    studentId.length < 2 -> error = "Please enter your student ID."
-                    password.length < 8 -> error = "Password must contain at least 8 characters."
+                    name.trim().length !in 2..120 -> error = "Full name must contain 2 to 120 characters."
+                    !isValidUniversityEmail(email) -> error = "Please enter a valid university email."
+                    !isValidStudentId(studentId) -> error = "Student ID may use letters, numbers, dot, dash, underscore or slash."
+                    password.length !in 8..128 -> error = "Password must contain 8 to 128 characters."
                     else -> scope.launch {
                         loading = true
                         error = ""
@@ -1540,16 +1752,16 @@ private fun StudentHomeScreen(
         if (previewMode) {
             item {
                 InfoPanel(
-                    "Connection notice",
+                    "University data",
                     listOf(
-                        "The premium catalog is visible while live server resources are loading.",
-                        "After a successful sign-in and refresh, resources come from PostgreSQL."
+                        "University resources are temporarily unavailable.",
+                        "The app will refresh automatically when university services are available."
                     )
                 )
             }
         }
 
-        item { SectionTitle("Choose a category", "Live university resources with the complete premium interface") }
+        item { SectionTitle("Choose a category", "Select a resource category to continue.") }
 
         items(categories) { category ->
             StudentCategoryCard(category = category, onClick = { onOpenCategory(category) })
@@ -1594,18 +1806,18 @@ private fun StudentCategoryScreen(
         item {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(category.chips) {
-                    AssistChip(onClick = {}, label = { Text(it) })
+                    StatusPill(it, category.color)
                 }
             }
         }
 
         item {
             when (category.kind) {
-                ResourceKind.Rooms -> CategoryExplanation("Rooms logic", listOf("Capacity matters", "Projector and seating are checked", "Some halls need approval"))
-                ResourceKind.Labs -> CategoryExplanation("Lab logic", listOf("Safety rules apply", "Some labs require technician approval", "Equipment must be inspected"))
-                ResourceKind.Media -> CategoryExplanation("Media logic", listOf("Kit parts are counted", "Battery state matters", "Pickup and return office are important"))
-                ResourceKind.Sports -> CategoryExplanation("Sports logic", listOf("Team size is checked", "Indoor/outdoor rules differ", "Missing items create reports"))
-                ResourceKind.Parking -> CategoryExplanation("Parking logic", listOf("Gate and plate number are required", "Visitor access needs approval", "Time limits apply"))
+                ResourceKind.Rooms -> CategoryExplanation("Room booking information", listOf("Capacity matters", "Projector and seating are checked", "Some halls need approval"))
+                ResourceKind.Labs -> CategoryExplanation("Laboratory requirements", listOf("Safety rules apply", "Some labs require technician approval", "Equipment must be inspected"))
+                ResourceKind.Media -> CategoryExplanation("Media equipment requirements", listOf("Kit parts are counted", "Battery state matters", "Pickup and return office are important"))
+                ResourceKind.Sports -> CategoryExplanation("Sports resource requirements", listOf("Team size is checked", "Indoor/outdoor rules differ", "Missing items create reports"))
+                ResourceKind.Parking -> CategoryExplanation("Parking requirements", listOf("Gate and plate number are required", "Visitor access needs approval", "Time limits apply"))
             }
         }
 
@@ -1650,10 +1862,10 @@ private fun StudentResourceDetailsScreen(
         if (previewMode) {
             item {
                 InfoPanel(
-                    "Preview resource",
+                    "Resource temporarily unavailable",
                     listOf(
-                        "This card is preserving the premium catalog while live university data is unavailable.",
-                        "Booking and reporting become available after the resource list is loaded from PostgreSQL."
+                        "This resource cannot be booked until university data is available.",
+                        "Please return to Home and try again when the connection is restored."
                     )
                 )
             }
@@ -1687,10 +1899,20 @@ private fun StudentResourceDetailsScreen(
 private fun StudentAvailabilityScreen(
     resource: ResourceUi,
     onBack: () -> Unit,
-    onContinue: (String, String) -> Unit
+    onContinue: (BookingDayUi, String) -> Unit
 ) {
-    var selectedDay by remember { mutableStateOf("Tue") }
-    var selectedSlot by remember { mutableStateOf("13:00 - 15:00") }
+    val days = remember { upcomingBookingDays() }
+    val initialDay = days.firstOrNull()
+    var selectedDay by remember { mutableStateOf(initialDay) }
+    var selectedSlot by remember {
+        mutableStateOf(
+            initialDay?.let { day ->
+                BOOKING_SLOTS.firstOrNull {
+                    slotStartMillis(day.dateMillis, it) > System.currentTimeMillis()
+                }
+            } ?: BOOKING_SLOTS.first()
+        )
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -1701,42 +1923,77 @@ private fun StudentAvailabilityScreen(
 
         item {
             InfoPanel(
-                "Live availability",
-                listOf("Choose a future slot. The server checks bookings and maintenance before continuing.")
+                "Choose a date and time",
+                listOf(
+                    "Dates below are real calendar dates.",
+                    "Past time slots are disabled.",
+                    "The university server checks booking and maintenance conflicts before you continue."
+                )
             )
         }
 
-        item {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(listOf("Mon", "Tue", "Wed", "Thu", "Fri")) { day ->
-                    SelectPill(day, selectedDay == day, resource.color) { selectedDay = day }
+        if (days.isEmpty()) {
+            item {
+                InfoPanel(
+                    "No booking dates available",
+                    listOf("Please try again later.")
+                )
+            }
+        } else {
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(days) { day ->
+                        SelectPill(
+                            day.label,
+                            selectedDay == day,
+                            resource.color
+                        ) {
+                            selectedDay = day
+                            BOOKING_SLOTS.firstOrNull {
+                                slotStartMillis(day.dateMillis, it) > System.currentTimeMillis()
+                            }?.let { selectedSlot = it }
+                        }
+                    }
                 }
             }
-        }
 
-        items(listOf("09:00 - 10:00", "10:00 - 12:00", "13:00 - 15:00", "15:00 - 17:00")) { slot ->
-            AvailabilitySlot(
-                slot = slot,
-                selected = selectedSlot == slot,
-                unavailable = false,
-                color = resource.color,
-                onSelect = { selectedSlot = slot }
-            )
-        }
+            items(BOOKING_SLOTS) { slot ->
+                val day = selectedDay
+                val past = day == null ||
+                    slotStartMillis(day.dateMillis, slot) <= System.currentTimeMillis()
 
-        item {
-            Button(
-                onClick = { onContinue(selectedDay, selectedSlot) },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = resource.color)
-            ) {
-                Text("Check & continue with $selectedDay, $selectedSlot", fontWeight = FontWeight.Black)
+                AvailabilitySlot(
+                    slot = slot,
+                    selected = !past && selectedSlot == slot,
+                    unavailable = past,
+                    color = resource.color,
+                    onSelect = { selectedSlot = slot }
+                )
+            }
+
+            item {
+                val day = selectedDay
+                val canContinue = day != null &&
+                    slotStartMillis(day.dateMillis, selectedSlot) > System.currentTimeMillis()
+
+                Button(
+                    onClick = {
+                        day?.let { onContinue(it, selectedSlot) }
+                    },
+                    enabled = canContinue,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = resource.color)
+                ) {
+                    Text(
+                        if (day == null) "Choose a date" else "Check availability",
+                        fontWeight = FontWeight.Black
+                    )
+                }
             }
         }
     }
 }
-
 @Composable
 private fun StudentBookingReviewScreen(
     resource: ResourceUi,
@@ -1829,10 +2086,19 @@ private fun StudentMyBookingsScreen(bookings: List<BookingUi>, onOpen: (BookingU
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { AppHeader("My Bookings", "Approved, pending and finished requests") }
+        item { AppHeader("My Bookings", "Your current and previous booking requests") }
 
-        items(bookings) { booking ->
-            BookingCard(booking, onOpen)
+        if (bookings.isEmpty()) {
+            item {
+                InfoPanel(
+                    "No bookings yet",
+                    listOf("Choose a resource from Home when you are ready to make your first booking.")
+                )
+            }
+        } else {
+            items(bookings) { booking ->
+                BookingCard(booking, onOpen)
+            }
         }
     }
 }
@@ -1842,22 +2108,51 @@ private fun StudentBookingTrackingScreen(
     booking: BookingUi,
     onBack: () -> Unit,
     onFinish: () -> Unit,
+    onRate: () -> Unit,
     onCancel: () -> Unit,
     onReport: () -> Unit
 ) {
-    val canFinish = booking.status in listOf("Approved", "Active")
-    val canCancel = booking.status in listOf("Pending", "Approved")
+    var confirmCancel by remember(booking.id, booking.status) { mutableStateOf(false) }
+    val canFinish = bookingCanFinish(booking)
+    val canCancel = bookingCanCancel(booking)
+    val canRate = bookingCanRate(booking)
+    val approved = booking.status in listOf("Approved", "Active", "Finished")
+
+    if (confirmCancel) {
+        AlertDialog(
+            onDismissRequest = { confirmCancel = false },
+            title = { Text("Cancel booking?") },
+            text = {
+                Text("This will cancel the booking request. This action cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmCancel = false
+                        onCancel()
+                    }
+                ) {
+                    Text("Cancel booking", color = UB.Red, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCancel = false }) {
+                    Text("Keep booking")
+                }
+            }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { BackHeader("Booking Tracking", booking.resource, onBack) }
+        item { BackHeader("Booking details", booking.resource, onBack) }
 
         item {
             InfoPanel(
-                "Booking",
+                "Booking summary",
                 listOf(
                     "ID: ${booking.id}",
                     "Resource: ${booking.resource}",
@@ -1870,26 +2165,51 @@ private fun StudentBookingTrackingScreen(
 
         item {
             TrackingStep("1", "Submitted", true)
-            TrackingStep("2", "Approved / Pending", booking.status !in listOf("Rejected", "Cancelled"))
-            TrackingStep("3", "Active usage", booking.status == "Active")
-            TrackingStep("4", "Finished", booking.status == "Finished")
-            TrackingStep("5", "Rated", booking.rated)
+            TrackingStep("2", "Approved", approved)
+            TrackingStep("3", "Finished", booking.status == "Finished")
+            TrackingStep("4", "Rated", booking.rated)
+        }
+
+        if (booking.status == "Approved" && !canFinish) {
+            item {
+                InfoPanel(
+                    "Booking has not started yet",
+                    listOf("Finishing becomes available when the booked start time is reached.")
+                )
+            }
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 OutlinedButton(
                     onClick = onReport,
                     modifier = Modifier.weight(1f).height(54.dp),
                     shape = RoundedCornerShape(18.dp)
-                ) { Text("Report") }
+                ) {
+                    Text("Report issue")
+                }
+
                 if (canFinish) {
                     Button(
                         onClick = onFinish,
                         modifier = Modifier.weight(1f).height(54.dp),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
-                    ) { Text("Finish", fontWeight = FontWeight.Black) }
+                    ) {
+                        Text("Finish", fontWeight = FontWeight.Black)
+                    }
+                } else if (canRate) {
+                    Button(
+                        onClick = onRate,
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
+                    ) {
+                        Text("Rate", fontWeight = FontWeight.Black)
+                    }
                 }
             }
         }
@@ -1897,15 +2217,16 @@ private fun StudentBookingTrackingScreen(
         if (canCancel) {
             item {
                 OutlinedButton(
-                    onClick = onCancel,
+                    onClick = { confirmCancel = true },
                     modifier = Modifier.fillMaxWidth().height(54.dp),
                     shape = RoundedCornerShape(18.dp)
-                ) { Text("Cancel booking", color = UB.Red, fontWeight = FontWeight.Bold) }
+                ) {
+                    Text("Cancel booking", color = UB.Red, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
 }
-
 @Composable
 private fun StudentFinishBookingScreen(onBack: () -> Unit, onRate: () -> Unit, onProblem: () -> Unit) {
     LazyColumn(
@@ -1929,13 +2250,13 @@ private fun StudentFinishBookingScreen(onBack: () -> Unit, onRate: () -> Unit, o
 
         item {
             Button(onClick = onRate, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = UB.Green)) {
-                Text("Everything is fine - rate service", fontWeight = FontWeight.Black)
+                Text("Finish booking and rate experience", fontWeight = FontWeight.Black)
             }
         }
 
         item {
             OutlinedButton(onClick = onProblem, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(18.dp)) {
-                Text("There is a problem")
+                Text("Report a problem instead")
             }
         }
     }
@@ -1946,7 +2267,7 @@ private fun StudentRateExperienceScreen(
     onBack: () -> Unit,
     onDone: (Int, String) -> Unit
 ) {
-    var rating by remember { mutableIntStateOf(4) }
+    var rating by remember { mutableIntStateOf(0) }
     var comment by remember { mutableStateOf("") }
 
     LazyColumn(
@@ -1954,7 +2275,7 @@ private fun StudentRateExperienceScreen(
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { BackHeader("Rate Experience", "Help improve campus services", onBack) }
+        item { BackHeader("Rate experience", "Help improve university services", onBack) }
 
         item {
             Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(Color.White)) {
@@ -1963,10 +2284,16 @@ private fun StudentRateExperienceScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "How was it?",
+                        "How was your experience?",
                         color = UB.Navy,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        if (rating == 0) "Choose a score from 1 to 5" else "Selected: $rating / 5",
+                        color = UB.Muted,
+                        fontSize = 13.sp
                     )
                     Spacer(Modifier.height(16.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1996,6 +2323,7 @@ private fun StudentRateExperienceScreen(
         item {
             Button(
                 onClick = { onDone(rating, comment.trim()) },
+                enabled = rating in 1..5,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
@@ -2005,7 +2333,51 @@ private fun StudentRateExperienceScreen(
         }
     }
 }
+@Composable
+private fun StudentReportResourcePickerScreen(
+    resources: List<ResourceUi>,
+    onBack: () -> Unit,
+    onOpen: (ResourceUi) -> Unit
+) {
+    var search by remember { mutableStateOf("") }
+    val filtered = resources.filter {
+        search.isBlank() ||
+            it.name.contains(search, ignoreCase = true) ||
+            it.location.contains(search, ignoreCase = true) ||
+            it.subtitle.contains(search, ignoreCase = true)
+    }
 
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            BackHeader(
+                "Choose a resource",
+                "Select the resource you want to report",
+                onBack
+            )
+        }
+
+        item {
+            InputField(search, { search = it }, "Search resources")
+        }
+
+        if (filtered.isEmpty()) {
+            item {
+                InfoPanel(
+                    "No resources found",
+                    listOf("Try another search or return to Home and refresh university data.")
+                )
+            }
+        } else {
+            items(filtered) { resource ->
+                StudentResourceCard(resource = resource, onClick = { onOpen(resource) })
+            }
+        }
+    }
+}
 @Composable
 private fun StudentReportProblemScreen(
     resourceName: String,
@@ -2066,16 +2438,30 @@ private fun StudentReportsScreen(reports: List<ReportUi>, onNew: () -> Unit) {
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { AppHeader("My Reports", "Problems and maintenance messages") }
+        item { AppHeader("My Reports", "Issues you have sent to university staff") }
 
         item {
-            Button(onClick = onNew, modifier = Modifier.fillMaxWidth().height(54.dp), shape = RoundedCornerShape(18.dp), colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)) {
+            Button(
+                onClick = onNew,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = UB.Blue)
+            ) {
                 Text("Create new report", fontWeight = FontWeight.Black)
             }
         }
 
-        items(reports) {
-            ReportCard(it)
+        if (reports.isEmpty()) {
+            item {
+                InfoPanel(
+                    "No reports yet",
+                    listOf("If a room or item has a problem, create a report and select the affected resource.")
+                )
+            }
+        } else {
+            items(reports) {
+                ReportCard(it)
+            }
         }
     }
 }
@@ -2087,20 +2473,48 @@ private fun StudentWarningsScreen(onBack: () -> Unit) {
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { BackHeader("Responsibility Center", "Shared-resource rules and notices", onBack) }
+        item {
+            BackHeader(
+                "Rules & Responsibilities",
+                "Simple rules for using shared university resources",
+                onBack
+            )
+        }
+
         item {
             InfoPanel(
-                "No personal warning feed is connected",
+                "Before booking",
                 listOf(
-                    "This screen does not invent student incidents or disciplinary records.",
-                    "Booking and repair activity shown elsewhere comes from the live university database.",
-                    "If a real warning system is added later, it must come from an authenticated backend endpoint."
+                    "Choose the correct resource and time.",
+                    "Read the resource rules before submitting.",
+                    "Use accurate booking information."
+                )
+            )
+        }
+
+        item {
+            InfoPanel(
+                "During use",
+                listOf(
+                    "Respect the booked time.",
+                    "Keep rooms and equipment in good condition.",
+                    "Do not transfer your booking to another person."
+                )
+            )
+        }
+
+        item {
+            InfoPanel(
+                "If something goes wrong",
+                listOf(
+                    "Report damage, missing items or unsafe conditions as soon as possible.",
+                    "Use the Report issue action for the affected resource.",
+                    "Follow university staff instructions for return or maintenance."
                 )
             )
         }
     }
 }
-
 @Composable
 private fun StudentHelpScreen(onBack: () -> Unit) {
     LazyColumn(
@@ -2108,7 +2522,7 @@ private fun StudentHelpScreen(onBack: () -> Unit) {
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        item { BackHeader("Help Center", "Login, booking, rules and emergency support", onBack) }
+        item { BackHeader("Help Center", "Booking guidance, account help and resource safety", onBack) }
 
         item {
             FAQCard("I cannot sign in", "Check your university email and password. If the problem continues, contact support.")
@@ -2123,7 +2537,7 @@ private fun StudentHelpScreen(onBack: () -> Unit) {
         }
 
         item {
-            InfoPanel("Emergency cases", listOf("Door left open", "Unsafe laboratory situation", "Broken electrical equipment", "Missing important item"))
+            InfoPanel("Report immediately", listOf("Door left open", "Unsafe laboratory situation", "Broken electrical equipment", "Missing important item"))
         }
     }
 }
@@ -2132,7 +2546,6 @@ private fun StudentHelpScreen(onBack: () -> Unit) {
 private fun StudentProfileScreen(
     name: String,
     studentId: String?,
-    server: String,
     previewMode: Boolean,
     onWarnings: () -> Unit,
     onReports: () -> Unit,
@@ -2144,7 +2557,7 @@ private fun StudentProfileScreen(
         contentPadding = PaddingValues(18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item { AppHeader("Profile", "Student account and responsibility") }
+        item { AppHeader("Profile", "Your verified student account") }
 
         item {
             Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(Color.White)) {
@@ -2172,10 +2585,15 @@ private fun StudentProfileScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            studentId?.let { "Student ID: $it" } ?: "Verified student account",
+                            studentId?.let { "Student ID: $it" } ?: "Student account",
                             color = UB.Muted
                         )
-                        Text("Booking permission: enabled", color = UB.Green, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Verified student account",
+                            color = UB.Green,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -2183,21 +2601,24 @@ private fun StudentProfileScreen(
 
         item {
             InfoPanel(
-                "Connection",
+                "Account status",
                 listOf(
-                    "Server: $server",
-                    if (previewMode) "Resource mode: premium preview until live data loads" else "Resource mode: live PostgreSQL data"
+                    "Email verification: complete",
+                    if (previewMode) {
+                        "University resources are temporarily unavailable."
+                    } else {
+                        "University services: connected"
+                    }
                 )
             )
         }
 
-        item { ProfileAction("My reports", "Problems sent to staff and technicians", onReports) }
-        item { ProfileAction("Warnings center", "Responsibility records and notices", onWarnings) }
-        item { ProfileAction("Help center", "Login, booking and support", onHelp) }
-        item { ProfileAction("Log out", "Return to the sign-in screen", onLogout) }
+        item { ProfileAction("My reports", "Issues sent to university staff", onReports) }
+        item { ProfileAction("Rules & responsibilities", "Guidance for shared resources", onWarnings) }
+        item { ProfileAction("Help center", "Booking guidance and support", onHelp) }
+        item { ProfileAction("Log out", "Sign out of this device", onLogout) }
     }
 }
-
 @Composable
 private fun AuthFrame(
     title: String,
@@ -2248,21 +2669,24 @@ private fun InputField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(label) },
+        label = { Text(label) },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         singleLine = !label.lowercase().contains("describe"),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (isPassword) {
+            PasswordVisualTransformation()
+        } else {
+            androidx.compose.ui.text.input.VisualTransformation.None
+        },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = UB.Bg,
-            unfocusedContainerColor = UB.Bg,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            focusedIndicatorColor = UB.Blue,
+            unfocusedIndicatorColor = UB.Line
         )
     )
 }
-
 @Composable
 private fun AppHeader(title: String, subtitle: String) {
     Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
@@ -2292,13 +2716,13 @@ private fun HomeHeroCard(onBookings: () -> Unit, onWarnings: () -> Unit) {
             Image(painter = painterResource(IMG_CAMPUS), contentDescription = null, modifier = Modifier.fillMaxWidth().height(205.dp), contentScale = ContentScale.Crop)
             Box(modifier = Modifier.matchParentSize().background(Brush.horizontalGradient(listOf(UB.Navy.copy(alpha = 0.96f), UB.Blue.copy(alpha = 0.45f)))))
             Column(modifier = Modifier.padding(22.dp)) {
-                Text("Student booking hub", color = Color.White.copy(alpha = 0.82f), fontWeight = FontWeight.Bold)
+                Text("Campus booking", color = Color.White.copy(alpha = 0.82f), fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Text("Reserve what you need without double booking or confusion.", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
+                Text("Reserve university resources and keep every request in one place.", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     HeroButton("My bookings", onBookings)
-                    HeroButton("Warnings", onWarnings)
+                    HeroButton("Rules", onWarnings)
                 }
             }
         }
@@ -2449,7 +2873,7 @@ private fun AvailabilitySlot(slot: String, selected: Boolean, unavailable: Boole
             Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(c))
             Spacer(Modifier.width(12.dp))
             Text(slot, color = UB.Navy, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text(if (unavailable) "Booked" else if (selected) "Selected" else "Available", color = c, fontWeight = FontWeight.Black)
+            Text(if (unavailable) "Past" else if (selected) "Selected" else "Choose", color = c, fontWeight = FontWeight.Black)
         }
     }
 }
@@ -2461,7 +2885,7 @@ private fun InfoPanel(title: String, lines: List<String>) {
             Text(title, color = UB.Navy, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
             Spacer(Modifier.height(12.dp))
             lines.forEach {
-                Text("â€¢ $it", color = UB.Muted, modifier = Modifier.padding(bottom = 7.dp))
+                Text("\u2022 $it", color = UB.Muted, modifier = Modifier.padding(bottom = 7.dp))
             }
         }
     }
@@ -2523,7 +2947,7 @@ private fun ReportCard(report: ReportUi) {
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(Color.White)) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(report.title, color = UB.Navy, fontWeight = FontWeight.Black)
-            Text("${report.resource} â€¢ ${report.date}", color = UB.Muted, fontSize = 13.sp)
+            Text("${report.resource} | ${report.date}", color = UB.Muted, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
             StatusPill(report.status, UB.Blue)
         }
