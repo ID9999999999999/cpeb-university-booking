@@ -102,7 +102,7 @@ private object UB {
     val Purple = Color(0xFF7C3AED)
 }
 
-private enum class StudentScreen {
+internal enum class StudentScreen {
     Welcome,
     Login,
     Register,
@@ -124,6 +124,15 @@ private enum class StudentScreen {
     Help,
     Profile
 }
+
+internal fun requiresAuthenticatedSession(screen: StudentScreen): Boolean =
+    when (screen) {
+        StudentScreen.Welcome,
+        StudentScreen.Login,
+        StudentScreen.Register,
+        StudentScreen.Verify -> false
+        else -> true
+    }
 
 private enum class ResourceKind {
     Rooms,
@@ -330,9 +339,16 @@ fun UbCampusBookingApp() {
             }
         }
 
+        val effectiveScreen =
+            if (session.token == null && requiresAuthenticatedSession(screen)) {
+                StudentScreen.Login
+            } else {
+                screen
+            }
+
         Surface(modifier = Modifier.fillMaxSize(), color = UB.Bg) {
             Box(modifier = Modifier.fillMaxSize()) {
-                when (screen) {
+                when (effectiveScreen) {
                     StudentScreen.Welcome -> StudentWelcomeScreen(
                         onStart = { screen = StudentScreen.Login },
                         onSignIn = { screen = StudentScreen.Login }
@@ -341,10 +357,7 @@ fun UbCampusBookingApp() {
                     StudentScreen.Login -> StudentLoginScreen(
                         session = session,
                         onLogin = { openHome() },
-                        onRegister = { screen = StudentScreen.Register },
-                        onHelp = {
-                            globalError = "Check your email/password and use Connection settings to test the university server before signing in."
-                        }
+                        onRegister = { screen = StudentScreen.Register }
                     )
 
                     StudentScreen.Register -> StudentRegisterScreen(
@@ -1145,8 +1158,7 @@ private fun StudentWelcomeScreen(onStart: () -> Unit, onSignIn: () -> Unit) {
 private fun StudentLoginScreen(
     session: Session,
     onLogin: () -> Unit,
-    onRegister: () -> Unit,
-    onHelp: () -> Unit
+    onRegister: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
@@ -1285,7 +1297,7 @@ private fun StudentLoginScreen(
                 Text(if (showServer) "Hide connection settings" else "Connection settings")
             }
         }
-        TextButton(onClick = onHelp) { Text("I have a login problem") }
+
     }
 }
 
@@ -2449,7 +2461,7 @@ private fun InfoPanel(title: String, lines: List<String>) {
             Text(title, color = UB.Navy, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
             Spacer(Modifier.height(12.dp))
             lines.forEach {
-                Text("• $it", color = UB.Muted, modifier = Modifier.padding(bottom = 7.dp))
+                Text("â€¢ $it", color = UB.Muted, modifier = Modifier.padding(bottom = 7.dp))
             }
         }
     }
@@ -2511,7 +2523,7 @@ private fun ReportCard(report: ReportUi) {
     Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(Color.White)) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(report.title, color = UB.Navy, fontWeight = FontWeight.Black)
-            Text("${report.resource} • ${report.date}", color = UB.Muted, fontSize = 13.sp)
+            Text("${report.resource} â€¢ ${report.date}", color = UB.Muted, fontSize = 13.sp)
             Spacer(Modifier.height(8.dp))
             StatusPill(report.status, UB.Blue)
         }
