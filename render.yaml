@@ -2,7 +2,7 @@ services:
   - type: web
     name: cpeb-university-booking-api-v4
     runtime: docker
-    branch: deep-stabilization-v4-2026-09-10
+    branch: main
     region: frankfurt
     plan: free
     autoDeployTrigger: checksPass
@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN_SECONDS
         value: "7200"
+      - key: CORS_ORIGINS
+        value: https://cpeb-university-booking-admin-web.onrender.com
       - key: CPEB_DEV_SHOW_VERIFICATION_CODE
         value: "false"
       - key: SMTP_HOST
@@ -38,6 +40,22 @@ services:
         value: "10000"
       - key: SMTP_SOCKET_TIMEOUT_MS
         value: "15000"
+
+  - type: web
+    name: cpeb-university-booking-admin-web
+    runtime: node
+    branch: main
+    region: frankfurt
+    plan: free
+    autoDeployTrigger: checksPass
+    buildCommand: cd apps/admin-web && npm run ci
+    startCommand: cd apps/admin-web && npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CPEB_API_BASE_URL
+        value: https://cpeb-university-booking-api-v4.onrender.com
 
 databases:
   - name: cpeb-postgres-v4
