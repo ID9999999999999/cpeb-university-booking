@@ -36,6 +36,20 @@ test('extracts backend validation messages safely', () => {
   assert.equal(extractErrorMessage(null, 'Fallback'), 'Fallback');
 });
 
+test('calls fetch with globalThis as receiver for browser compatibility', async () => {
+  let step = 0;
+  function fetchImpl(url) {
+    assert.equal(this, globalThis);
+    step += 1;
+    if (step === 1) return Promise.resolve(jsonResponse(200, { accessToken: 't', user: { role: 'ADMIN' } }));
+    return Promise.resolve(jsonResponse(200, { id: 'u1', role: 'ADMIN' }));
+  }
+
+  const api = new CpebAdminApi('https://api.example.test', fetchImpl);
+  await api.login('a@example.test', 'password');
+  assert.equal(step, 2);
+});
+
 test('login keeps an allowed token in memory and verifies /auth/me', async () => {
   const calls = [];
   const fetchImpl = async (url, options) => {
@@ -71,7 +85,7 @@ test('login rejects non-admin roles without retaining a session', async () => {
 
 test('401 responses clear the in-memory session', async () => {
   let step = 0;
-  const fetchImpl = async (url) => {
+  const fetchImpl = async () => {
     step += 1;
     if (step === 1) return jsonResponse(200, { accessToken: 't', user: { role: 'ADMIN' } });
     if (step === 2) return jsonResponse(200, { id: 'u1', role: 'ADMIN' });
