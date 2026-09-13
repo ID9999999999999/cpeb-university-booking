@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'deep-stabilization-*'
+      - 'admin-web-*'
   pull_request:
     branches:
       - main
@@ -102,6 +103,31 @@ jobs:
           path: apps/api/coverage
           if-no-files-found: warn
           retention-days: 14
+
+  admin-web:
+    name: Admin Web Security and Contract Tests
+    runs-on: ubuntu-24.04
+
+    defaults:
+      run:
+        working-directory: apps/admin-web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+
+      - name: Check portal JavaScript syntax
+        run: npm run check
+
+      - name: Run portal security and API-contract tests
+        run: npm test
 
   android:
     name: Android Build and Contract Tests

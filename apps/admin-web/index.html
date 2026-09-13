@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>CPEB Administration</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/runtime-config.js" defer></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <section id="login-view" class="auth-card" aria-labelledby="login-title">
+      <div class="brand-mark" aria-hidden="true">C</div>
+      <p class="eyebrow">CPEB University Booking</p>
+      <h1 id="login-title">Administration Portal</h1>
+      <p class="muted">Authorized administrators and lab managers only.</p>
+      <form id="login-form" autocomplete="on">
+        <label for="email">University email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required maxlength="254">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button id="login-button" type="submit">Sign in</button>
+      </form>
+      <p id="login-error" class="error-message" role="alert" hidden></p>
+      <p class="security-note">For security, the access token is kept only in memory and is erased on logout or page refresh.</p>
+    </section>
+
+    <section id="portal-view" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CPEB University Booking</p>
+          <h1>Booking approvals</h1>
+        </div>
+        <div class="account-area">
+          <div class="account-copy">
+            <strong id="account-name"></strong>
+            <span id="account-role" class="muted"></span>
+          </div>
+          <button id="logout-button" type="button" class="secondary">Log out</button>
+        </div>
+      </header>
+
+      <section class="stats" aria-label="Booking summary">
+        <article class="stat-card">
+          <span>Pending</span>
+          <strong id="stat-pending">—</strong>
+        </article>
+        <article class="stat-card">
+          <span>Active</span>
+          <strong id="stat-active">—</strong>
+        </article>
+        <article class="stat-card">
+          <span>Available equipment</span>
+          <strong id="stat-available">—</strong>
+        </article>
+      </section>
+
+      <section class="panel" aria-labelledby="pending-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="pending-title">Pending requests</h2>
+            <p class="muted">Approve or reject requests after checking the student, equipment and booking period.</p>
+          </div>
+          <button id="refresh-button" type="button" class="secondary">Refresh</button>
+        </div>
+        <p id="portal-message" class="status-message" role="status" hidden></p>
+        <div id="empty-state" class="empty-state" hidden>No pending booking requests.</div>
+        <div class="table-wrap">
+          <table id="bookings-table" hidden>
+            <thead>
+              <tr>
+                <th scope="col">Requester</th>
+                <th scope="col">Equipment</th>
+                <th scope="col">Period</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="reject-dialog" aria-labelledby="reject-title">
+    <form id="reject-form" method="dialog">
+      <h2 id="reject-title">Reject booking</h2>
+      <p id="reject-booking-summary" class="muted"></p>
+      <label for="reject-reason">Reason (optional)</label>
+      <textarea id="reject-reason" maxlength="1000" rows="5" placeholder="Reason visible in the audit trail"></textarea>
+      <p id="reject-error" class="error-message" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="reject-cancel" type="button" class="secondary">Cancel</button>
+        <button id="reject-confirm" type="submit" class="danger">Reject booking</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
