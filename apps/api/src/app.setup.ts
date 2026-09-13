@@ -4,6 +4,9 @@ import type { NextFunction, Request, Response } from 'express';
 import { GlobalHttpExceptionFilter } from './common/http-exception.filter';
 import { RequestLoggingInterceptor } from './common/request-logging.interceptor';
 
+const OFFICIAL_ADMIN_WEB_ORIGIN =
+  'https://cpeb-university-booking-admin-web.onrender.com';
+
 export function configureApplication(app: INestApplication) {
   app.enableShutdownHooks();
 
@@ -30,10 +33,18 @@ export function configureApplication(app: INestApplication) {
     next();
   });
 
-  const corsOrigins = (process.env.CORS_ORIGINS ?? '')
+  const configuredCorsOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const corsOrigins = Array.from(
+    new Set([
+      ...configuredCorsOrigins,
+      ...(process.env.NODE_ENV === 'production'
+        ? [OFFICIAL_ADMIN_WEB_ORIGIN]
+        : []),
+    ]),
+  );
 
   if (corsOrigins.length > 0) {
     app.enableCors({ origin: corsOrigins });
