@@ -7,6 +7,11 @@ import { RequestLoggingInterceptor } from './common/request-logging.interceptor'
 export function configureApplication(app: INestApplication) {
   app.enableShutdownHooks();
 
+  const adapterInstance = app.getHttpAdapter().getInstance() as {
+    disable?: (header: string) => void;
+  };
+  adapterInstance.disable?.('x-powered-by');
+
   app.use((request: Request, response: Response, next: NextFunction) => {
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Frame-Options', 'DENY');
@@ -48,17 +53,23 @@ export function configureApplication(app: INestApplication) {
   app.useGlobalFilters(new GlobalHttpExceptionFilter());
   app.useGlobalInterceptors(new RequestLoggingInterceptor());
 
-  const config = new DocumentBuilder()
-    .setTitle('CPEB University Booking API')
-    .setDescription(
-      'University equipment booking, maintenance, repair, administration, and authentication API.',
-    )
-    .setVersion('1.2')
-    .addBearerAuth()
-    .build();
+  const swaggerEnabled =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.ENABLE_SWAGGER === 'true';
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: { persistAuthorization: false },
-  });
+  if (swaggerEnabled) {
+    const config = new DocumentBuilder()
+      .setTitle('CPEB University Booking API')
+      .setDescription(
+        'University equipment booking, maintenance, repair, administration, and authentication API.',
+      )
+      .setVersion('1.3')
+      .addBearerAuth()
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: { persistAuthorization: false },
+    });
+  }
 }

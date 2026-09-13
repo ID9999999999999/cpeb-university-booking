@@ -20,7 +20,11 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     const request = http.getRequest<Request & { requestId?: string; user?: any }>();
     const response = http.getResponse<Response>();
     const startedAt = Date.now();
-    const requestId = request.headers['x-request-id']?.toString() || randomUUID();
+    const requestedId = request.headers['x-request-id']?.toString().trim();
+    const requestId =
+      requestedId && /^[A-Za-z0-9._:-]{1,128}$/.test(requestedId)
+        ? requestedId
+        : randomUUID();
 
     request.requestId = requestId;
     response.setHeader('x-request-id', requestId);
@@ -28,8 +32,7 @@ export class RequestLoggingInterceptor implements NestInterceptor {
     const base = {
       requestId,
       method: request.method,
-      path: request.originalUrl || request.url,
-      actorId: request.user?.id ?? request.user?.sub ?? null,
+      path: request.path,
     };
 
     return next.handle().pipe(

@@ -22,6 +22,7 @@ internal class SecureTokenStore(context: Context) {
     private val preferences =
         context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
+    @Synchronized
     fun get(): String? {
         val encrypted = preferences.getString(ENCRYPTED_TOKEN, null)
         val iv = preferences.getString(TOKEN_IV, null)
@@ -30,7 +31,7 @@ internal class SecureTokenStore(context: Context) {
             return try {
                 decrypt(encrypted, iv)
             } catch (_: Throwable) {
-                clearSecureValues()
+                resetKeyMaterial()
                 null
             }
         }
@@ -42,7 +43,7 @@ internal class SecureTokenStore(context: Context) {
                 set(legacy)
                 legacy
             } catch (_: Throwable) {
-                preferences.edit().remove(LEGACY_TOKEN).apply()
+                preferences.edit().remove(LEGACY_TOKEN).commit()
                 null
             }
         }
@@ -50,12 +51,27 @@ internal class SecureTokenStore(context: Context) {
         return null
     }
 
+    @Synchronized
     fun set(value: String?) {
         if (value.isNullOrBlank()) {
             clear()
             return
         }
 
+        try {
+            encryptAndPersist(value)
+        } catch (_: Throwable) {
+            resetKeyMaterial()
+            encryptAndPersist(value)
+        }
+    }
+
+    @Synchronized
+    fun clear() {
+        resetKeyMaterial()
+    }
+
+    private fun encryptAndPersist(value: String) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
 
@@ -63,23 +79,31 @@ internal class SecureTokenStore(context: Context) {
         val encodedCiphertext = Base64.encodeToString(encrypted, Base64.NO_WRAP)
         val encodedIv = Base64.encodeToString(cipher.iv, Base64.NO_WRAP)
 
-        preferences.edit()
+        val written = preferences.edit()
             .putString(ENCRYPTED_TOKEN, encodedCiphertext)
             .putString(TOKEN_IV, encodedIv)
             .remove(LEGACY_TOKEN)
-            .apply()
-    }
+            .commit()
 
-    fun clear() {
-        clearSecureValues()
-        preferences.edit().remove(LEGACY_TOKEN).apply()
+        check(written) { "Could not persist encrypted session" }
     }
 
     private fun clearSecureValues() {
         preferences.edit()
             .remove(ENCRYPTED_TOKEN)
             .remove(TOKEN_IV)
-            .apply()
+            .remove(LEGACY_TOKEN)
+            .commit()
+    }
+
+    private fun resetKeyMaterial() {
+        clearSecureValues()
+        runCatching {
+            val keyStore = KeyStore.getInstance(ANDROID_KEY_STORE).apply { load(null) }
+            if (keyStore.containsAlias(KEY_ALIAS)) {
+                keyStore.deleteEntry(KEY_ALIAS)
+            }
+        }
     }
 
     private fun decrypt(ciphertext: String, iv: String): String {

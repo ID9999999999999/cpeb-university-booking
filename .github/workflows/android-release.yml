@@ -1,4 +1,4 @@
-﻿name: Publish Signed CPEB Android Release
+name: Publish Signed CPEB Android Release
 
 on:
   workflow_dispatch:
@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: cpeb-signed-android-release
@@ -19,7 +20,7 @@ jobs:
   signed-release:
     name: Build, verify, and publish signed release APK
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     defaults:
       run:
@@ -33,10 +34,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: 17
@@ -54,6 +57,16 @@ jobs:
             echo "Release tag must look like v1.2.0 or v1.2.0-rc.1"
             exit 1
           fi
+
+          VERSION_NAME="$(
+            sed -n 's/^[[:space:]]*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts |
+            head -1
+          )"
+          test -n "$VERSION_NAME"
+          test "$RELEASE_TAG" = "v$VERSION_NAME"
+
+          NORMALIZED_API_BASE="${CPEB_RELEASE_API_BASE_URL%/}"
+          test "$NORMALIZED_API_BASE" = "https://cpeb-university-booking-api-v4.onrender.com"
           test -n "$KEYSTORE_B64"
           test -n "$ANDROID_KEYSTORE_PASSWORD"
           test -n "$ANDROID_KEY_ALIAS"
@@ -131,25 +144,87 @@ jobs:
                   time.sleep(10)
           PY
 
+      - name: Require successful CI for this exact release commit
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RUNS="$(
+            gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ci-cd.yml \
+              --branch main \
+              --commit "$GITHUB_SHA" \
+              --status completed \
+              --limit 20 \
+              --json headSha,conclusion
+          )"
+          printf '%s' "$RUNS" |
+            jq -e --arg sha "$GITHUB_SHA" \
+              'any(.[]; .headSha == $sha and .conclusion == "success")' >/dev/null
+
+      - name: Verify Gradle wrapper JAR before execution
+        run: |
+          set -euo pipefail
+          EXPECTED="$(curl -fsSL https://services.gradle.org/distributions/gradle-9.4.1-wrapper.jar.sha256)"
+          ACTUAL="$(sha256sum gradle/wrapper/gradle-wrapper.jar | awk '{print $1}')"
+          test "$ACTUAL" = "$EXPECTED"
+
       - name: Make Gradle executable
         run: chmod +x gradlew
 
       - name: Run Android tests and lint
-        run: ./gradlew testDebugUnitTest lintDebug --stacktrace
+        run: ./gradlew testDebugUnitTest assembleDebugAndroidTest lintRelease --stacktrace
 
       - name: Build signed release APK
         run: ./gradlew assembleRelease --stacktrace
 
-      - name: Verify APK signature and prepare release asset
+      - name: Verify APK identity, alignment, signer and digest
         run: |
           set -euo pipefail
           APK="app/build/outputs/apk/release/app-release.apk"
           test -f "$APK"
+
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -1)"
+          ZIPALIGN="$(find "$ANDROID_HOME/build-tools" -type f -name zipalign | sort -V | tail -1)"
           test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          test -x "$AAPT"
+          test -x "$ZIPALIGN"
+
+          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1)"
+          printf '%s\n' "$VERIFY_OUTPUT"
+          printf '%s\n' "$VERIFY_OUTPUT" | grep -Eq 'Verified using v2 scheme.*true'
+
+          EXPECTED_CERT_SHA256="2aee2ab749ba733b777ef62aa7c8204c9c91d6e15524fed2681be38c9e5bd01e"
+          ACTUAL_CERT_SHA256="$(
+            printf '%s\n' "$VERIFY_OUTPUT" |
+            awk -F': ' '/certificate SHA-256 digest:/ { print tolower($NF); exit }'
+          )"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+
+          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
+          printf '%s\n' "$BADGING"
+          printf '%s\n' "$BADGING" | grep -Fq "package: name='com.yasser.ub'"
+          if "$AAPT" dump badging "$APK" | grep -q '^application-debuggable'; then
+            echo "Release APK must not be debuggable"
+            exit 1
+          fi
+
+          RELEASE_TAG="${{ inputs.tag }}"
+          EXPECTED_VERSION="${RELEASE_TAG#v}"
+          printf '%s\n' "$BADGING" | grep -Fq "versionName='$EXPECTED_VERSION'"
+
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK"
+
           cp "$APK" "app/build/outputs/apk/release/CPEB-University-Booking.apk"
-          sha256sum "app/build/outputs/apk/release/CPEB-University-Booking.apk" | tee "app/build/outputs/apk/release/CPEB-University-Booking.apk.sha256"
+          (
+            cd app/build/outputs/apk/release
+            sha256sum "CPEB-University-Booking.apk" |
+              tee "CPEB-University-Booking.apk.sha256"
+            sha256sum -c "CPEB-University-Booking.apk.sha256"
+          )
 
       - name: Publish GitHub release
         env:

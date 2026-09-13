@@ -53,7 +53,7 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
       error,
       message,
       method: request.method,
-      path: request.originalUrl || request.url,
+      path: request.path,
       timestamp: new Date().toISOString(),
       requestId,
     });

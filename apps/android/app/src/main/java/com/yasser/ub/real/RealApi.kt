@@ -214,10 +214,14 @@ private fun normalizeApiBaseUrl(value: String): String {
 class Session(context: Context) {
     private val preferences = context.getSharedPreferences("cpeb_session", Context.MODE_PRIVATE)
     private val secureTokenStore = SecureTokenStore(context.applicationContext)
+    private var cachedToken: String? = secureTokenStore.get()
 
     var token: String?
-        get() = secureTokenStore.get()
-        set(value) { secureTokenStore.set(value) }
+        get() = cachedToken
+        set(value) {
+            secureTokenStore.set(value)
+            cachedToken = value
+        }
 
     var name: String?
         get() = preferences.getString("name", null)
@@ -251,7 +255,7 @@ class Session(context: Context) {
         }
 
     fun saveAuthenticatedUser(response: AuthResponse) {
-        secureTokenStore.set(response.accessToken)
+        token = response.accessToken
         preferences.edit()
             .putString("name", response.user.fullName)
             .putString("student_id", response.user.studentId)
@@ -259,7 +263,7 @@ class Session(context: Context) {
             .apply()
     }
     fun clearAuthentication() {
-        secureTokenStore.clear()
+        token = null
         preferences.edit()
             .remove("name")
             .remove("student_id")
@@ -267,7 +271,7 @@ class Session(context: Context) {
     }
 
     fun clear() {
-        secureTokenStore.clear()
+        token = null
         preferences.edit()
             .remove("name")
             .remove("student_id")
@@ -292,11 +296,11 @@ object ApiFactory {
         val normalized = normalizeApiBaseUrl(baseUrl)
         if (cachedApi == null || cachedBaseUrl != normalized) {
             val client = OkHttpClient.Builder()
-                .connectTimeout(12, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
-                .writeTimeout(20, TimeUnit.SECONDS)
-                .callTimeout(30, TimeUnit.SECONDS)
-                .retryOnConnectionFailure(true)
+                .connectTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(45, TimeUnit.SECONDS)
+                .writeTimeout(45, TimeUnit.SECONDS)
+                .callTimeout(60, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(false)
                 .build()
 
             cachedBaseUrl = normalized
