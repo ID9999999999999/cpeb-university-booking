@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+  <title id="title">CPEB University Booking</title>
+  <desc id="desc">Calendar, laboratory flask and approval check mark.</desc>
+  <rect width="108" height="108" rx="24" fill="#082B63"/>
+  <rect x="12" y="16" width="84" height="80" rx="14" fill="#0E4C92"/>
+  <rect x="18" y="29" width="72" height="60" rx="9" fill="#fff"/>
+  <rect x="18" y="42" width="72" height="5" fill="#DCEBFF"/>
+  <rect x="27" y="18" width="10" height="24" rx="5" fill="#fff"/>
+  <rect x="71" y="18" width="10" height="24" rx="5" fill="#fff"/>
+  <path d="M38 54h15v6h-3v8l9 14a5 5 0 0 1-4.2 7.7H34.2A5 5 0 0 1 30 82l9-14v-8h-1z" fill="#0E4C92"/>
+  <path d="M41 72l-6 11h18l-6-11z" fill="#6EA8E8"/>
+  <circle cx="78" cy="78" r="18" fill="#159A6D" stroke="#fff" stroke-width="4"/>
+  <path d="M68 78l7 7l13-15" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
