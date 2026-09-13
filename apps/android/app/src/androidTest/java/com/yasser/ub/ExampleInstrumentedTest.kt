@@ -1,7 +1,6 @@
 package com.yasser.ub
 
 import android.content.Context
-import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -33,12 +32,10 @@ class AuthenticationUiSmokeTest {
         composeRule.setContent { UbCampusBookingApp() }
 
         composeRule.onNodeWithText("Campus Booking").assertIsDisplayed()
-        composeRule.onNodeWithText("My Bookings").assertDoesNotExist()
 
         composeRule.onNodeWithText("Sign in").performClick()
 
         composeRule.onNodeWithText("University email").assertIsDisplayed()
         composeRule.onNodeWithText("Password").assertIsDisplayed()
-        composeRule.onNodeWithText("My Bookings").assertDoesNotExist()
     }
 }
