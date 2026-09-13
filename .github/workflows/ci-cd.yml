@@ -124,12 +124,14 @@ jobs:
           java-version: 17
           cache: gradle
 
-      - name: Verify Gradle wrapper JAR before execution
+      - name: Verify pinned Gradle bootstrap
         run: |
           set -euo pipefail
-          EXPECTED="$(curl -fsSL https://services.gradle.org/distributions/gradle-9.4.1-wrapper.jar.sha256)"
-          ACTUAL="$(sha256sum gradle/wrapper/gradle-wrapper.jar | awk '{print $1}')"
-          test "$ACTUAL" = "$EXPECTED"
+          EXPECTED_DISTRIBUTION_SHA="2ab2958f2a1e51120c326cad6f385153bb11ee93b3c216c5fccebfdfbb7ec6cb"
+          EXPECTED_WRAPPER_BLOB="8bdaf60c75ab801e22807dde59e12a8735a34077"
+          grep -Fxq "distributionSha256Sum=$EXPECTED_DISTRIBUTION_SHA" gradle/wrapper/gradle-wrapper.properties
+          ACTUAL_WRAPPER_BLOB="$(git hash-object gradle/wrapper/gradle-wrapper.jar)"
+          test "$ACTUAL_WRAPPER_BLOB" = "$EXPECTED_WRAPPER_BLOB"
 
       - name: Make Gradle executable
         run: chmod +x gradlew
