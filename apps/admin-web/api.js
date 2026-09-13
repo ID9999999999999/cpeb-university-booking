@@ -117,7 +117,7 @@ export class CpebAdminApi {
 
     let response;
     try {
-      response = await this.#fetch(`${this.#baseUrl}${path}`, {
+      response = await this.#fetch.call(globalThis, `${this.#baseUrl}${path}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
