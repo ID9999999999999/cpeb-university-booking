@@ -22,7 +22,7 @@
     "verify": "npm test -- --runInBand && npm run build",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "seed:resources": "node prisma/seed.cjs",
+    "seed:resources": "node prisma/seed.cjs && node prisma/seed-admin.cjs",
     "seed:admin": "node prisma/seed-admin.cjs"
   },
   "dependencies": {
