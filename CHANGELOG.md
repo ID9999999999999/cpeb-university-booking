@@ -11,6 +11,7 @@
 - Added category and equipment-status filters with live result counts and clear status badges.
 - Added role-aware equipment management: `ADMIN` can change safe manual inventory states while `LAB_MANAGER` remains read-only and workflow-owned states stay protected.
 - Added searchable booking history with server-side status filtering, requester/resource search, recent-first ordering and booking status badges.
+- Added privacy-preserving local CSV exports for the currently filtered booking history and equipment inventory, with Excel-friendly UTF-8 encoding and no server-side storage.
 - Added a live university-services health indicator backed by the public `/health` endpoint, including last-check time, browser theme color and CPEB favicon.
 
 ### Android
@@ -33,8 +34,9 @@
 
 ### Security, delivery and maintenance
 - Added Admin Web CI security and API-contract checks alongside Android and backend verification.
-- Added dedicated contract tests for inventory filters, equipment status changes, booking history and service-health helpers.
+- Added dedicated contract tests for inventory filters, equipment status changes, booking history, service-health helpers and safe CSV serialization.
 - Kept the university health check independent of the administrator access token and configured it to use no-store requests.
+- Kept CSV exports entirely in the browser and excluded inventory management controls from exported data.
 - Removed an obsolete seed file that contained plaintext sample credentials.
 - Updated the Render blueprint and project documentation to reflect the current three-application architecture.
 - Retained the hardening from the stabilization phase: protected maintenance/audit operations, safer audit responses, production JWT validation, structured errors/logging, configurable CORS, booking/maintenance lifecycle validation and deep PostgreSQL E2E checks.
