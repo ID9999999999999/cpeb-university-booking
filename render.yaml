@@ -24,6 +24,14 @@ services:
         value: https://cpeb-university-booking-admin-web.onrender.com
       - key: CPEB_DEV_SHOW_VERIFICATION_CODE
         value: "false"
+      - key: CPEB_ADMIN_EMAIL
+        sync: false
+      - key: CPEB_ADMIN_PASSWORD
+        sync: false
+      - key: CPEB_TECHNICIAN_EMAIL
+        sync: false
+      - key: CPEB_TECHNICIAN_PASSWORD
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
