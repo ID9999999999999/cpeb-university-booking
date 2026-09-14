@@ -1,22 +1,51 @@
 # CPEB University Booking
 
 [![CPEB CI-CD](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml/badge.svg?branch=main&event=push)](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml)
+[![Latest Release](https://img.shields.io/github/v/release/ID9999999999999/cpeb-university-booking?label=APK%20release)](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest)
 
-A complete university resource-booking system with an Android student client, a secure administration web portal, a NestJS REST API, and PostgreSQL persistence.
+**CPEB University Booking** is a complete academic software project for booking and managing university resources. It connects a student/teacher Android application, an administration web portal, a NestJS backend API, and PostgreSQL in one workflow.
 
-> **Android APK:** [Download the latest release](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest)
->
-> **Administration portal:** https://cpeb-university-booking-admin-web.onrender.com
->
-> **Production API:** https://cpeb-university-booking-api-v4.onrender.com
+> **Simple idea:** a student requests a resource → an administrator approves or rejects it → the decision returns to the student's **My Bookings** view.
 
-## What the system does
+## Open the project
 
-Students and teachers can browse university resources, check availability, submit reservations, follow booking decisions, cancel eligible bookings, complete bookings, and report equipment problems.
+| | Link |
+|---|---|
+| **Android APK** | [Download the latest signed release](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest) |
+| **Administration portal** | [Open CPEB Admin Web](https://cpeb-university-booking-admin-web.onrender.com) |
+| **Production API** | [Open API](https://cpeb-university-booking-api-v4.onrender.com) |
+| **Swagger / OpenAPI** | [Open API documentation](https://cpeb-university-booking-api-v4.onrender.com/docs) |
+| **CI/CD** | [GitHub Actions](https://github.com/ID9999999999999/cpeb-university-booking/actions) |
 
-Authorized staff can review pending bookings, approve or reject requests, search booking history, manage the equipment inventory, operate repair and maintenance workflows, and monitor university-service health.
+## Project at a glance
 
-### Booking workflow
+| Android App | Admin Web | Backend API | Database |
+|---|---|---|---|
+| Kotlin + Jetpack Compose | Browser UI + Node server | NestJS + TypeScript | PostgreSQL 16 + Prisma |
+| Students & teachers | Admins & lab managers | Business rules & security | Persistent university data |
+
+**Current scope:**
+
+- **70 seeded university resources** across rooms, laboratories, media, sports and parking.
+- **5 user roles:** `STUDENT`, `TEACHER`, `TECHNICIAN`, `LAB_MANAGER`, `ADMIN`.
+- Booking approval, check-out, return and close lifecycle.
+- Equipment inventory management.
+- Maintenance scheduling and repair-ticket workflows.
+- Authentication, role-based authorization, auditing and production deployment.
+- Automated Android, backend, PostgreSQL and Admin Web verification through GitHub Actions.
+
+## What the system looks like
+
+<table>
+<tr>
+<td width="50%"><strong>Equipment / resources</strong><br><img src="evidence/screenshots/equipment-list.png" alt="CPEB equipment list" width="100%"></td>
+<td width="50%"><strong>Booking approval flow</strong><br><img src="evidence/screenshots/approval-flow-test.png" alt="CPEB booking approval flow" width="100%"></td>
+</tr>
+</table>
+
+More verification material is available in [`evidence/`](evidence/).
+
+## Main booking workflow
 
 ```text
 Student / Teacher
@@ -37,16 +66,69 @@ REJECTED  APPROVED
             CLOSED
 ```
 
-The administration portal completes the approval loop: a request created by a student appears as `PENDING`, an authorized administrator or lab manager approves or rejects it, and the decision is returned to the student's **My Bookings** view.
+The administration portal completes the approval loop: a request created in the Android app appears as `PENDING`, an authorized administrator or lab manager approves or rejects it, and the decision is returned to the student's **My Bookings** view.
 
-## Applications
+## Architecture
 
-| Component | Technology | Purpose |
-|---|---|---|
-| Android | Kotlin, Jetpack Compose, Material 3 | Student and teacher booking client |
-| Admin Web | Dependency-free browser UI + Node static server | Booking administration, inventory and operations center |
-| API | NestJS, TypeScript | Authentication, booking, equipment and administration API |
-| Database | PostgreSQL 16 + Prisma | Persistent university data |
+```mermaid
+flowchart LR
+    A[Android App] --> B[NestJS API]
+    D[Admin Web] --> B
+    B --> C[(PostgreSQL)]
+```
+
+The backend remains authoritative for booking conflicts, permissions, maintenance rules, and lifecycle transitions.
+
+## Key features
+
+### Students and teachers
+
+- Browse and search university resources.
+- Check availability and create booking requests.
+- Follow booking decisions in **My Bookings**.
+- Cancel eligible bookings and complete allowed flows.
+- Report equipment problems.
+
+### Administration
+
+- Secure administrator and lab-manager sign-in.
+- Review pending bookings and approve/reject requests.
+- Search booking history and filter by status.
+- Search and manage the equipment inventory.
+- Export filtered booking/equipment views to CSV.
+- Monitor university-service health.
+- Open the Operations Center for maintenance and repair workflows.
+
+### Maintenance and repair
+
+- Schedule maintenance windows.
+- Prevent conflicting bookings during maintenance.
+- Track repair tickets and technician actions.
+- Require diagnosis before appropriate repair resolution.
+- Maintain audit history for administrative operations.
+
+## Security and reliability
+
+- bcrypt password hashing and JWT authentication.
+- Database-backed role authorization.
+- Protected administrative operations.
+- Production JWT-secret validation.
+- Configurable production CORS.
+- Security response headers and restrictive browser policies.
+- Booking-collision and maintenance-conflict prevention.
+- Structured request IDs, logs and audit events.
+- CI checks for backend, PostgreSQL E2E, Android and Admin Web.
+
+## Current project status
+
+The project is **presentation-ready and functionally complete for its academic scope**.
+
+- `main` includes the current **v1.4.0 feature set** described in [`CHANGELOG.md`](CHANGELOG.md).
+- The latest public signed Android package is **v1.3.0** in GitHub Releases.
+- The latest `main` CI run completed successfully after the presentation/UI polish work.
+- API and Admin Web are deployed publicly on Render.
+
+See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for the concise status sheet and [`docs/PRESENTATION.md`](docs/PRESENTATION.md) for the demo-oriented project explanation.
 
 ## Repository structure
 
@@ -56,120 +138,27 @@ apps/
 ├── android/            Android application
 └── api/                NestJS backend
 
-docs/                  Project and API documentation
+docs/                  Architecture, API, database and project documentation
 evidence/              Test evidence and screenshots
 scripts/               Utility and verification scripts
 tests/                 Project verification resources
 ```
 
-## Key features
-
-### Authentication and authorization
-
-- User registration and email verification
-- bcrypt password hashing
-- JWT authentication
-- Persistent Android login session
-- Database-backed roles
-- `ADMIN`, `LAB_MANAGER`, `TECHNICIAN`, `TEACHER`, and `STUDENT` authorization
-- Inactive-user rejection
-- Production JWT-secret validation
-- Administrator portal access restricted to authorized administrative roles
-- Admin Web access token kept only in page memory and cleared on logout or refresh
-
-### Equipment and resources
-
-- Searchable and filterable university resource catalog
-- 70 seeded university resources across rooms, laboratories, media, sports and parking
-- Inventory-tag uniqueness
-- Equipment detail and availability
-- Administrative creation and safe status management
-- Modern category illustrations and CPEB visual identity
-- Audit events for equipment changes
-
-### Bookings
-
-- Availability checks
-- Time-interval validation
-- Requests start in `PENDING`
-- Collision prevention for active booking states
-- Maintenance windows block conflicting bookings
-- Student booking history
-- Student cancellation and completion flows
-- Administrative approve / reject
-- Check-out / return / close lifecycle
-- Invalid repeated transitions rejected
-- Booking actions recorded in the audit log
-
-### Administration portal
-
-- Secure administrator and lab-manager sign-in
-- Pending, active and available-equipment summary cards
-- Pending request approval/rejection queue
-- Searchable booking history with status filters and recent-first ordering
-- Live equipment inventory with search, category/status filters and role-aware management
-- Local CSV exports for the current filtered booking and equipment views
-- Live university-services health indicator
-- Direct entry to the Operations Center
-- Responsive desktop/mobile styling and modern CPEB branding
-- CSP, clickjacking protection, no-referrer policy, no-store caching and restrictive browser permissions
-
-### Operations Center
-
-- Dedicated repair-report and maintenance workspace at `/operations.html`
-- Repair-ticket search and status filtering
-- UI exposes only transitions permitted by the backend state machine
-- Diagnosis required before a report can be resolved when none exists
-- Maintenance search and status filtering
-- Protected `SCHEDULED → ACTIVE → COMPLETED/CANCELLED` maintenance lifecycle
-- Booking-conflict and checked-out-equipment safety rules remain backend-authoritative
-- Summary counters for unresolved reports, active maintenance and scheduled maintenance
-
-### Maintenance and repair
-
-- Maintenance listing and detail
-- Role-protected maintenance operations
-- Booking-conflict and overlapping-maintenance validation
-- Controlled maintenance state transitions
-- Automatic equipment maintenance status handling
-- Student repair-ticket submission and history
-- Technician assignment and diagnosis
-- Audit trail for administrative actions
-
-### API quality and privacy
-
-- Swagger / OpenAPI at `/docs`
-- Bearer authorization in Swagger
-- Global DTO validation and transformation
-- Health and database-health endpoints
-- Configurable production CORS origins
-- Security response headers
-- Request IDs and structured HTTP logs
-- Safe audit responses that do not expose credential material
-
 ## Continuous integration
 
-Every pull request is validated through GitHub Actions.
+Every pull request is validated through GitHub Actions. The pipeline includes:
 
-The pipeline includes:
+- Backend dependency/security gate.
+- Prisma schema validation and PostgreSQL migrations.
+- Backend build, unit tests and deep PostgreSQL E2E tests.
+- Deployable backend container build.
+- Android unit/API-contract tests, lint and APK build.
+- Admin Web JavaScript, security and API-contract checks.
 
-- Backend dependency security gate
-- Prisma schema validation and client generation
-- Clean PostgreSQL migration deployment
-- Backend build
-- Backend unit tests with coverage
-- Deep PostgreSQL E2E tests
-- Deployable backend container build
-- Android unit and API-contract tests
-- Android instrumentation-test compilation
-- Android lint
-- Android debug APK build
-- Admin Web JavaScript syntax checks
-- Admin Web security and API-contract tests
+## Local development
 
-Changes are merged to `main` only after the full pipeline succeeds.
-
-## Local backend setup
+<details>
+<summary><strong>Backend setup</strong></summary>
 
 Requirements: Node.js 22+, PostgreSQL 16, and npm.
 
@@ -197,39 +186,10 @@ MAIL_FROM
 
 Administrative accounts are provisioned only from explicit environment variables. No public default administrator password is embedded in the active seed flow.
 
-To provision administrative accounts in an authorized environment:
+</details>
 
-```powershell
-npm run seed:admin
-```
-
-## Local endpoints
-
-```text
-API:      http://localhost:3000/
-Health:   http://localhost:3000/health
-Database: http://localhost:3000/db-health
-Swagger:  http://localhost:3000/docs
-```
-
-## Android backend address
-
-The emulator default is:
-
-```text
-http://10.0.2.2:3000/
-```
-
-For a physical device on the same network, provide the reachable backend URL:
-
-```powershell
-cd apps\android
-.\gradlew.bat assembleDebug -PCPEB_API_BASE_URL=http://192.168.1.20:3000/
-```
-
-Replace the sample address with the backend computer's LAN address. The same value can be supplied through the `CPEB_API_BASE_URL` environment variable.
-
-## Verification commands
+<details>
+<summary><strong>Verification commands</strong></summary>
 
 Backend:
 
@@ -255,29 +215,26 @@ cd apps\admin-web
 npm run ci
 ```
 
+</details>
+
 ## Production deployment
 
 The repository contains `render.yaml` for the production topology:
 
-- API from `main`
-- Admin Web from `main`
-- PostgreSQL in Frankfurt
-- exact Admin Web origin in production CORS configuration
-- production-only security configuration
+- API from `main`.
+- Admin Web from `main`.
+- PostgreSQL service.
+- Production CORS and security configuration.
+- Secrets stored as environment variables rather than committed to GitHub.
 
-Secrets remain Render environment variables and are not committed to GitHub.
-
-## Security scope
-
-This is an academic university software project with real authentication, authorization, validation, protected administrative operations, auditing, CI security checks, and production deployment controls.
-
-A long-lived institutional deployment should additionally use managed backups, formal secret rotation, monitoring and alerting, rate limiting, disaster recovery, penetration testing, and university operational policies.
+For a long-lived institutional deployment, the next layer would include managed backups, formal secret rotation, monitoring/alerting, rate limiting, disaster recovery, penetration testing and university operational policies.
 
 ## Academic information
 
+**Project:** CPEB University Booking  
+**Student:** Yasser Idbouzkri  
 **Supervisor:** Nazih Errahel  
-**University:** Irkutsk National Research Technical University (INRTU)  
-**Student:** Yasser Idbouzkri
+**University:** Irkutsk National Research Technical University (INRTU)
 
 ## License
 
