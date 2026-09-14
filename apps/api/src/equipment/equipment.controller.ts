@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -13,7 +14,11 @@ import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
-import { CreateEquipmentDto, EquipmentStatusDto } from './equipment.dto';
+import {
+  CreateEquipmentDto,
+  EquipmentQueryDto,
+  EquipmentStatusDto,
+} from './equipment.dto';
 import { EquipmentService } from './equipment.service';
 
 @ApiTags('Equipment')
@@ -28,8 +33,8 @@ export class EquipmentController {
   }
 
   @Get()
-  findAll() {
-    return this.equipmentService.findAll();
+  findAll(@Query() query: EquipmentQueryDto) {
+    return this.equipmentService.findAll(query);
   }
 
   @Get(':id')
