@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#082b63">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>CPEB Operations Center</title>
+  <link rel="icon" href="/brand.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/operations.css">
+  <script src="/runtime-config.js" defer></script>
+  <script type="module" src="/operations.js"></script>
+</head>
+<body>
+  <main class="shell operations-shell">
+    <section id="ops-login-view" class="auth-card" aria-labelledby="ops-login-title">
+      <div class="brand-mark" aria-hidden="true">C</div>
+      <p class="eyebrow">CPEB University Booking</p>
+      <h1 id="ops-login-title">Operations Center</h1>
+      <p class="muted">Repair reports and maintenance workflows for authorized administrators and lab managers.</p>
+      <form id="ops-login-form" autocomplete="on">
+        <label for="ops-email">University email</label>
+        <input id="ops-email" name="email" type="email" autocomplete="username" required maxlength="254">
+        <label for="ops-password">Password</label>
+        <input id="ops-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button id="ops-login-button" type="submit">Sign in</button>
+      </form>
+      <p id="ops-login-error" class="error-message" role="alert" hidden></p>
+      <p class="security-note">The access token is kept in memory only and disappears on refresh, logout or navigation.</p>
+      <a class="ops-back-link" href="/">← Back to Administration Dashboard</a>
+    </section>
+
+    <section id="ops-view" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CPEB University Booking</p>
+          <h1>Operations Center</h1>
+        </div>
+        <div class="account-area">
+          <div class="account-copy">
+            <strong id="ops-account-name"></strong>
+            <span id="ops-account-role" class="muted"></span>
+          </div>
+          <a class="secondary ops-nav-link" href="/">Dashboard</a>
+          <button id="ops-refresh" type="button" class="secondary">Refresh</button>
+          <button id="ops-logout" type="button" class="secondary">Log out</button>
+        </div>
+      </header>
+
+      <p id="ops-message" class="status-message" role="status" hidden></p>
+
+      <section class="ops-stats" aria-label="Operations summary">
+        <article class="ops-stat-card"><span>Open reports</span><strong id="ops-open-reports">—</strong></article>
+        <article class="ops-stat-card"><span>Active maintenance</span><strong id="ops-active-maintenance">—</strong></article>
+        <article class="ops-stat-card"><span>Scheduled maintenance</span><strong id="ops-scheduled-maintenance">—</strong></article>
+      </section>
+
+      <section class="panel" aria-labelledby="reports-title">
+        <div class="panel-heading ops-heading">
+          <div>
+            <h2 id="reports-title">Repair reports</h2>
+            <p class="muted">Track incidents through diagnosis, parts, testing, resolution and closure.</p>
+          </div>
+          <strong id="reports-count" class="result-count">— reports</strong>
+        </div>
+        <div class="ops-controls">
+          <div class="control-field">
+            <label for="reports-status">Status</label>
+            <select id="reports-status">
+              <option value="">All statuses</option>
+              <option value="OPEN">Open</option>
+              <option value="DIAGNOSING">Diagnosing</option>
+              <option value="WAITING_PARTS">Waiting parts</option>
+              <option value="READY_FOR_TEST">Ready for test</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </div>
+          <div class="control-field ops-search-field">
+            <label for="reports-search">Search</label>
+            <input id="reports-search" type="search" maxlength="200" placeholder="Title, equipment, reporter, technician…" autocomplete="off">
+          </div>
+        </div>
+        <div id="reports-empty" class="empty-state" hidden>No repair reports match these filters.</div>
+        <div class="table-wrap">
+          <table id="reports-table" hidden>
+            <thead><tr><th>Report</th><th>Equipment</th><th>People</th><th>Status</th><th>Management</th></tr></thead>
+            <tbody id="reports-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="maintenance-title">
+        <div class="panel-heading ops-heading">
+          <div>
+            <h2 id="maintenance-title">Maintenance</h2>
+            <p class="muted">Monitor scheduled and active maintenance windows without bypassing booking conflicts.</p>
+          </div>
+          <strong id="maintenance-count" class="result-count">— records</strong>
+        </div>
+        <div class="ops-controls">
+          <div class="control-field">
+            <label for="maintenance-status">Status</label>
+            <select id="maintenance-status">
+              <option value="">All statuses</option>
+              <option value="SCHEDULED">Scheduled</option>
+              <option value="ACTIVE">Active</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <div class="control-field ops-search-field">
+            <label for="maintenance-search">Search</label>
+            <input id="maintenance-search" type="search" maxlength="200" placeholder="Title, equipment, inventory tag, location…" autocomplete="off">
+          </div>
+        </div>
+        <div id="maintenance-empty" class="empty-state" hidden>No maintenance records match these filters.</div>
+        <div class="table-wrap">
+          <table id="maintenance-table" hidden>
+            <thead><tr><th>Maintenance</th><th>Equipment</th><th>Window</th><th>Status</th><th>Management</th></tr></thead>
+            <tbody id="maintenance-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
