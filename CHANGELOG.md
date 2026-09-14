@@ -7,6 +7,11 @@
 - Restricted administrative web access to authorized `ADMIN` and `LAB_MANAGER` roles while keeping the backend authoritative.
 - Kept admin access tokens in memory only and retained the portal security-header/CSP protections.
 - Refreshed the administration portal visual system and CPEB branding.
+- Added a live equipment inventory with search across resource name, inventory tag, category, location and description.
+- Added category and equipment-status filters with live result counts and clear status badges.
+- Added role-aware equipment management: `ADMIN` can change safe manual inventory states while `LAB_MANAGER` remains read-only and workflow-owned states stay protected.
+- Added searchable booking history with server-side status filtering, requester/resource search, recent-first ordering and booking status badges.
+- Added a live university-services health indicator backed by the public `/health` endpoint, including last-check time, browser theme color and CPEB favicon.
 
 ### Android
 - Refreshed the CPEB launcher identity and unified the application name as CPEB University Booking.
@@ -24,9 +29,12 @@
 - Added optional `q`, `category` and `status` filters to `GET /equipment`.
 - Added case-insensitive search across equipment name, inventory tag, category, location and description.
 - Added validated status filtering and deterministic equipment ordering.
+- Reused the existing administrative booking-status filter for the new booking-history view without adding a redundant endpoint or database migration.
 
 ### Security, delivery and maintenance
 - Added Admin Web CI security and API-contract checks alongside Android and backend verification.
+- Added dedicated contract tests for inventory filters, equipment status changes, booking history and service-health helpers.
+- Kept the university health check independent of the administrator access token and configured it to use no-store requests.
 - Removed an obsolete seed file that contained plaintext sample credentials.
 - Updated the Render blueprint and project documentation to reflect the current three-application architecture.
 - Retained the hardening from the stabilization phase: protected maintenance/audit operations, safer audit responses, production JWT validation, structured errors/logging, configurable CORS, booking/maintenance lifecycle validation and deep PostgreSQL E2E checks.
