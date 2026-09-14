@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/operations.css">
   <script src="/runtime-config.js" defer></script>
+  <script type="module" src="/export.js"></script>
   <script type="module" src="/operations.js"></script>
 </head>
 <body>
@@ -63,7 +64,10 @@
             <h2 id="reports-title">Repair reports</h2>
             <p class="muted">Track incidents through diagnosis, parts, testing, resolution and closure.</p>
           </div>
-          <strong id="reports-count" class="result-count">— reports</strong>
+          <div class="ops-heading-actions">
+            <strong id="reports-count" class="result-count">— reports</strong>
+            <button id="reports-export" type="button" class="secondary">Export CSV</button>
+          </div>
         </div>
         <div class="ops-controls">
           <div class="control-field">
@@ -100,6 +104,7 @@
           </div>
           <div class="ops-heading-actions">
             <strong id="maintenance-count" class="result-count">— records</strong>
+            <button id="maintenance-export" type="button" class="secondary">Export CSV</button>
             <button id="maintenance-create" type="button">Schedule maintenance</button>
           </div>
         </div>
