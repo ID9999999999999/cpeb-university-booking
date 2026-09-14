@@ -23,6 +23,10 @@ const resources = [
   ['LAB', 'Arduino Robotics Kit', 'LAB-ROB-01', 'Robotics Laboratory', 'Arduino-based mobile robotics kit for control, sensing and prototyping projects.'],
   ['LAB', 'VR Research Headset', 'LAB-VR-01', 'Immersive Systems Lab', 'Virtual-reality headset for visualization, simulation and interaction research.'],
   ['LAB', 'High-Performance Laptop', 'LAB-LAP-01', 'Technology Building', 'Portable development laptop for CAD, programming and project demonstrations.'],
+  ['LAB', 'Dell XPS 15 Development Laptop', 'LAB-LAP-02', 'Technology Building - Innovation Hub', 'Modern high-performance development laptop for CAD, programming, AI demos and advanced coursework.'],
+  ['LAB', 'Olympus CX43 Research Microscope', 'LAB-MIC-02', 'Biology Laboratory', 'Professional binocular microscope for supervised biology, materials and research observation.'],
+  ['LAB', 'Meta Quest 3 Mixed-Reality Headset', 'LAB-XR-02', 'Immersive Systems Lab', 'Mixed-reality headset for immersive learning, visualization, simulation and spatial-computing projects.'],
+  ['LAB', 'Arduino Uno Prototyping Kit', 'LAB-ARD-02', 'Embedded Systems Lab', 'Arduino Uno board with sensors, breadboard, cables and components for rapid embedded-systems prototyping.'],
 
   ['MEDIA', 'DSLR Camera Canon 01', 'MEDIA-CAM-01', 'Media Office', 'DSLR camera with lens, charger and memory card for university media projects.'],
   ['MEDIA', 'Video Camera Sony 01', 'MEDIA-VID-01', 'Media Office', 'Video camera for interviews, lectures and event recording.'],
@@ -36,6 +40,8 @@ const resources = [
   ['MEDIA', 'Action Camera Kit', 'MEDIA-ACT-01', 'Media Office', 'Compact action camera with batteries, mounts and protective case.'],
   ['MEDIA', 'USB Audio Interface', 'MEDIA-AUDIO-01', 'Media Studio', 'Two-channel audio interface for microphones, instruments and recording.'],
   ['MEDIA', 'Portable Green Screen', 'MEDIA-GREEN-01', 'Media Studio', 'Portable chroma-key background for video production and streaming.'],
+  ['MEDIA', 'Canon EOS 90D Creator Kit', 'MEDIA-CAM-02', 'Media Studio', 'Modern DSLR creator kit with versatile lens, spare battery, memory cards and protective case for photo and 4K video projects.'],
+  ['MEDIA', 'DJI Mini 4 Pro Drone Kit', 'MEDIA-DRONE-01', 'Media Office', 'Compact aerial-imaging kit with controller, spare batteries and protective case for approved campus media projects.'],
 
   ['SPORT', 'Football Kit', 'SPORT-FOOT-01', 'Sports Center', 'Football set with balls, cones and training bibs.'],
   ['SPORT', 'Basketball Kit', 'SPORT-BASK-01', 'Sports Center', 'Basketballs, bibs and portable training accessories.'],
