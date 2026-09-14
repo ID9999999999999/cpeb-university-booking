@@ -98,7 +98,10 @@
             <h2 id="maintenance-title">Maintenance</h2>
             <p class="muted">Monitor scheduled and active maintenance windows without bypassing booking conflicts.</p>
           </div>
-          <strong id="maintenance-count" class="result-count">— records</strong>
+          <div class="ops-heading-actions">
+            <strong id="maintenance-count" class="result-count">— records</strong>
+            <button id="maintenance-create" type="button">Schedule maintenance</button>
+          </div>
         </div>
         <div class="ops-controls">
           <div class="control-field">
@@ -126,5 +129,33 @@
       </section>
     </section>
   </main>
+
+  <dialog id="maintenance-dialog" aria-labelledby="maintenance-dialog-title">
+    <form id="maintenance-form" method="dialog">
+      <h2 id="maintenance-dialog-title">Schedule maintenance</h2>
+      <p class="muted">The API will reject any period that conflicts with active bookings or another maintenance window.</p>
+      <label for="maintenance-equipment">Equipment</label>
+      <select id="maintenance-equipment" required></select>
+      <label for="maintenance-title-input">Title</label>
+      <input id="maintenance-title-input" type="text" maxlength="200" required placeholder="Preventive inspection">
+      <label for="maintenance-description">Description (optional)</label>
+      <textarea id="maintenance-description" maxlength="4000" rows="4" placeholder="Work to perform, checks, replacement parts…"></textarea>
+      <div class="maintenance-time-grid">
+        <div>
+          <label for="maintenance-start">Start</label>
+          <input id="maintenance-start" type="datetime-local" required>
+        </div>
+        <div>
+          <label for="maintenance-end">End</label>
+          <input id="maintenance-end" type="datetime-local" required>
+        </div>
+      </div>
+      <p id="maintenance-form-error" class="error-message" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button id="maintenance-cancel" type="button" class="secondary">Cancel</button>
+        <button id="maintenance-submit" type="submit">Schedule</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

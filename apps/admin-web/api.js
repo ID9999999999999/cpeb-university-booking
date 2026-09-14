@@ -140,6 +140,25 @@ export class CpebAdminApi {
     return this.#request(`/admin/maintenance${normalized ? `?status=${encodeURIComponent(normalized)}` : ''}`);
   }
 
+  createMaintenance({ equipmentId, title, description = '', startTime, endTime }) {
+    const normalizedEquipmentId = typeof equipmentId === 'string' ? equipmentId.trim() : '';
+    const normalizedTitle = typeof title === 'string' ? title.trim().slice(0, 200) : '';
+    const normalizedDescription = typeof description === 'string' ? description.trim().slice(0, 4000) : '';
+    if (!normalizedEquipmentId) throw new ApiError('Equipment is required');
+    if (!normalizedTitle) throw new ApiError('Maintenance title is required');
+    if (!startTime || !endTime) throw new ApiError('Maintenance start and end times are required');
+    return this.#request('/admin/maintenance', {
+      method: 'POST',
+      body: {
+        equipmentId: normalizedEquipmentId,
+        title: normalizedTitle,
+        ...(normalizedDescription ? { description: normalizedDescription } : {}),
+        startTime,
+        endTime,
+      },
+    });
+  }
+
   updateMaintenanceStatus(id, status) {
     const normalizedStatus = typeof status === 'string' ? status.trim().toUpperCase() : '';
     if (!normalizedStatus) throw new ApiError('Maintenance status is required');

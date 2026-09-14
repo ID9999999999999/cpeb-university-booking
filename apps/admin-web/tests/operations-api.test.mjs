@@ -55,6 +55,45 @@ test('maintenance retrieval and status updates use normalized values', async () 
   assert.deepEqual(JSON.parse(requests[1].options.body), { status: 'COMPLETED' });
 });
 
+test('maintenance scheduler normalizes bounded fields and preserves ISO times', async () => {
+  const requests = [];
+  const api = await authenticatedApi(requests, 'LAB_MANAGER');
+  await api.createMaintenance({
+    equipmentId: ' equipment-1 ',
+    title: `  ${'T'.repeat(250)}  `,
+    description: `  ${'D'.repeat(4500)}  `,
+    startTime: '2026-09-15T08:00:00.000Z',
+    endTime: '2026-09-15T09:30:00.000Z',
+  });
+
+  assert.equal(requests[0].url, 'https://api.example.test/admin/maintenance');
+  assert.equal(requests[0].options.method, 'POST');
+  const body = JSON.parse(requests[0].options.body);
+  assert.equal(body.equipmentId, 'equipment-1');
+  assert.equal(body.title.length, 200);
+  assert.equal(body.description.length, 4000);
+  assert.equal(body.startTime, '2026-09-15T08:00:00.000Z');
+  assert.equal(body.endTime, '2026-09-15T09:30:00.000Z');
+});
+
+test('maintenance scheduler rejects incomplete requests before network calls', async () => {
+  const requests = [];
+  const api = await authenticatedApi(requests);
+  assert.throws(() => api.createMaintenance({
+    equipmentId: '',
+    title: 'Inspection',
+    startTime: '2026-09-15T08:00:00.000Z',
+    endTime: '2026-09-15T09:00:00.000Z',
+  }), /Equipment is required/);
+  assert.throws(() => api.createMaintenance({
+    equipmentId: 'e1',
+    title: '   ',
+    startTime: '2026-09-15T08:00:00.000Z',
+    endTime: '2026-09-15T09:00:00.000Z',
+  }), /title is required/);
+  assert.equal(requests.length, 0);
+});
+
 test('operations mutations reject empty statuses before network calls', async () => {
   const requests = [];
   const api = await authenticatedApi(requests);
