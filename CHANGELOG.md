@@ -18,6 +18,7 @@
 - Added maintenance filtering/search with protected `SCHEDULED → ACTIVE → COMPLETED/CANCELLED` lifecycle actions and backend conflict enforcement.
 - Added Operations Center summary counters for unresolved reports, active maintenance and scheduled maintenance.
 - Added maintenance scheduling from the Operations Center with equipment selection, title, description and date/time window; the backend remains authoritative for booking and overlapping-maintenance conflicts.
+- Added local CSV exports for the currently filtered repair-report and maintenance tables without server-side export storage.
 
 ### Android
 - Refreshed the CPEB launcher identity and unified the application name as CPEB University Booking.
@@ -42,7 +43,7 @@
 - Added Admin Web CI security and API-contract checks alongside Android and backend verification.
 - Added dedicated contract tests for inventory filters, equipment status changes, booking history, service-health helpers, CSV serialization, Operations Center mutations and maintenance scheduling payloads.
 - Kept the university health check independent of the administrator access token and configured it to use no-store requests.
-- Kept CSV exports entirely in the browser and excluded inventory management controls from exported data.
+- Kept all CSV exports entirely in the browser and excluded management-control columns from exported data.
 - Removed an obsolete seed file that contained plaintext sample credentials.
 - Updated the Render blueprint and project documentation to reflect the current three-application architecture.
 - Retained the hardening from the stabilization phase: protected maintenance/audit operations, safer audit responses, production JWT validation, structured errors/logging, configurable CORS, booking/maintenance lifecycle validation and deep PostgreSQL E2E checks.
