@@ -32,7 +32,7 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">CPEB University Booking</p>
-          <h1>Booking approvals</h1>
+          <h1>Administration dashboard</h1>
         </div>
         <div class="account-area">
           <div class="account-copy">
@@ -58,15 +58,16 @@
         </article>
       </section>
 
+      <p id="portal-message" class="status-message" role="status" hidden></p>
+
       <section class="panel" aria-labelledby="pending-title">
         <div class="panel-heading">
           <div>
             <h2 id="pending-title">Pending requests</h2>
             <p class="muted">Approve or reject requests after checking the student, equipment and booking period.</p>
           </div>
-          <button id="refresh-button" type="button" class="secondary">Refresh</button>
+          <button id="refresh-button" type="button" class="secondary">Refresh all</button>
         </div>
-        <p id="portal-message" class="status-message" role="status" hidden></p>
         <div id="empty-state" class="empty-state" hidden>No pending booking requests.</div>
         <div class="table-wrap">
           <table id="bookings-table" hidden>
@@ -80,6 +81,62 @@
               </tr>
             </thead>
             <tbody id="bookings-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel inventory-panel" aria-labelledby="inventory-title">
+        <div class="panel-heading inventory-heading">
+          <div>
+            <h2 id="inventory-title">Equipment inventory</h2>
+            <p class="muted">Search live university resources by name, inventory tag, category, location or status.</p>
+          </div>
+          <strong id="equipment-count" class="result-count">— resources</strong>
+        </div>
+
+        <div class="inventory-controls" role="search" aria-label="Equipment inventory filters">
+          <div class="control-field search-field">
+            <label for="equipment-search">Search</label>
+            <input id="equipment-search" type="search" maxlength="200" placeholder="3D printer, camera, LAB-OSC-01…" autocomplete="off">
+          </div>
+          <div class="control-field">
+            <label for="equipment-category">Category</label>
+            <select id="equipment-category">
+              <option value="">All categories</option>
+              <option value="ROOM">Rooms</option>
+              <option value="LAB">Laboratories</option>
+              <option value="MEDIA">Media</option>
+              <option value="SPORT">Sports</option>
+              <option value="PARKING">Parking</option>
+            </select>
+          </div>
+          <div class="control-field">
+            <label for="equipment-status">Status</label>
+            <select id="equipment-status">
+              <option value="">All statuses</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="RESERVED">Reserved</option>
+              <option value="CHECKED_OUT">Checked out</option>
+              <option value="UNDER_MAINTENANCE">Under maintenance</option>
+              <option value="LOST">Lost</option>
+              <option value="RETIRED">Retired</option>
+            </select>
+          </div>
+          <button id="equipment-clear" type="button" class="secondary clear-filters">Clear filters</button>
+        </div>
+
+        <div id="equipment-empty" class="empty-state inventory-empty" hidden>No equipment matches these filters.</div>
+        <div class="table-wrap">
+          <table id="equipment-table" hidden>
+            <thead>
+              <tr>
+                <th scope="col">Resource</th>
+                <th scope="col">Category</th>
+                <th scope="col">Location</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody id="equipment-body"></tbody>
           </table>
         </div>
       </section>
