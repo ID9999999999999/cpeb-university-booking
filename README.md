@@ -3,49 +3,64 @@
 [![CPEB CI-CD](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml/badge.svg?branch=main&event=push)](https://github.com/ID9999999999999/cpeb-university-booking/actions/workflows/ci-cd.yml)
 [![Latest Release](https://img.shields.io/github/v/release/ID9999999999999/cpeb-university-booking?label=APK%20release)](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest)
 
-**CPEB University Booking** is a complete academic software project for booking and managing university resources. It connects a student/teacher Android application, an administration web portal, a NestJS backend API, and PostgreSQL in one workflow.
+**CPEB University Booking** is a complete academic system for booking and managing university resources.
 
-> **Simple idea:** a student requests a resource → an administrator approves or rejects it → the decision returns to the student's **My Bookings** view.
+> **Student requests a resource → Admin approves or rejects → The result returns to My Bookings.**
 
-## Open the project
+## Quick access
 
-| | Link |
+| Open | Link |
 |---|---|
-| **Android APK** | [Download the latest signed release](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest) |
-| **Administration portal** | [Open CPEB Admin Web](https://cpeb-university-booking-admin-web.onrender.com) |
+| **Android APK** | [Latest signed release](https://github.com/ID9999999999999/cpeb-university-booking/releases/latest) |
+| **Admin Web** | [Open administration portal](https://cpeb-university-booking-admin-web.onrender.com) |
 | **Production API** | [Open API](https://cpeb-university-booking-api-v4.onrender.com) |
-| **Swagger / OpenAPI** | [Open API documentation](https://cpeb-university-booking-api-v4.onrender.com/docs) |
-| **CI/CD** | [GitHub Actions](https://github.com/ID9999999999999/cpeb-university-booking/actions) |
+| **Swagger** | [Open API documentation](https://cpeb-university-booking-api-v4.onrender.com/docs) |
+| **Project status** | [Current completion sheet](docs/PROJECT_STATUS.md) |
+| **Presentation / demo** | [Simple project explanation](docs/PRESENTATION.md) |
+| **Evidence** | [Verification material](evidence/) |
 
-## Project at a glance
+## Project in one view
 
-| Android App | Admin Web | Backend API | Database |
-|---|---|---|---|
-| Kotlin + Jetpack Compose | Browser UI + Node server | NestJS + TypeScript | PostgreSQL 16 + Prisma |
-| Students & teachers | Admins & lab managers | Business rules & security | Persistent university data |
+```mermaid
+flowchart LR
+    A[Android App] --> B[NestJS API]
+    D[Admin Web] --> B
+    B --> C[(PostgreSQL)]
+```
 
-**Current scope:**
+| Layer | Technology | Main purpose |
+|---|---|---|
+| Android | Kotlin + Jetpack Compose | Student/teacher booking client |
+| Admin Web | Browser UI + Node server | Approval, inventory and operations |
+| API | NestJS + TypeScript | Rules, authentication and workflows |
+| Database | PostgreSQL 16 + Prisma | Persistent university data |
+
+## What is already working
 
 - **70 seeded university resources** across rooms, laboratories, media, sports and parking.
 - **5 user roles:** `STUDENT`, `TEACHER`, `TECHNICIAN`, `LAB_MANAGER`, `ADMIN`.
-- Booking approval, check-out, return and close lifecycle.
-- Equipment inventory management.
-- Maintenance scheduling and repair-ticket workflows.
-- Authentication, role-based authorization, auditing and production deployment.
-- Automated Android, backend, PostgreSQL and Admin Web verification through GitHub Actions.
+- Registration, verification, login and JWT sessions.
+- Resource search, filtering, details and availability.
+- Booking request, approval/rejection, check-out, return and close lifecycle.
+- Booking collision prevention.
+- Admin booking history and equipment inventory.
+- Maintenance scheduling and booking blocking.
+- Repair-ticket and technician workflows.
+- Audit logging and protected administrative operations.
+- Public API/Admin deployment and automated CI verification.
 
-## What the system looks like
+## Visual evidence
 
 <table>
 <tr>
 <td width="50%"><strong>Equipment / resources</strong><br><img src="evidence/screenshots/equipment-list.png" alt="CPEB equipment list" width="100%"></td>
-<td width="50%"><strong>Booking approval flow</strong><br><img src="evidence/screenshots/approval-flow-test.png" alt="CPEB booking approval flow" width="100%"></td>
+<td width="50%"><strong>Booking approval workflow</strong><br><img src="evidence/screenshots/approval-flow-test.png" alt="CPEB booking approval flow" width="100%"></td>
 </tr>
 </table>
 
-More verification material is available in [`evidence/`](evidence/).
+More proof is organized in [`evidence/`](evidence/).
 
-## Main booking workflow
+## Booking workflow
 
 ```text
 Student / Teacher
@@ -66,101 +81,48 @@ REJECTED  APPROVED
             CLOSED
 ```
 
-The administration portal completes the approval loop: a request created in the Android app appears as `PENDING`, an authorized administrator or lab manager approves or rejects it, and the decision is returned to the student's **My Bookings** view.
+The backend is authoritative for permissions, conflicts, maintenance rules and lifecycle transitions.
 
-## Architecture
+## Project status
 
-```mermaid
-flowchart LR
-    A[Android App] --> B[NestJS API]
-    D[Admin Web] --> B
-    B --> C[(PostgreSQL)]
-```
+The academic core is **functionally complete and presentation-ready**.
 
-The backend remains authoritative for booking conflicts, permissions, maintenance rules, and lifecycle transitions.
-
-## Key features
-
-### Students and teachers
-
-- Browse and search university resources.
-- Check availability and create booking requests.
-- Follow booking decisions in **My Bookings**.
-- Cancel eligible bookings and complete allowed flows.
-- Report equipment problems.
-
-### Administration
-
-- Secure administrator and lab-manager sign-in.
-- Review pending bookings and approve/reject requests.
-- Search booking history and filter by status.
-- Search and manage the equipment inventory.
-- Export filtered booking/equipment views to CSV.
-- Monitor university-service health.
-- Open the Operations Center for maintenance and repair workflows.
-
-### Maintenance and repair
-
-- Schedule maintenance windows.
-- Prevent conflicting bookings during maintenance.
-- Track repair tickets and technician actions.
-- Require diagnosis before appropriate repair resolution.
-- Maintain audit history for administrative operations.
-
-## Security and reliability
-
-- bcrypt password hashing and JWT authentication.
-- Database-backed role authorization.
-- Protected administrative operations.
-- Production JWT-secret validation.
-- Configurable production CORS.
-- Security response headers and restrictive browser policies.
-- Booking-collision and maintenance-conflict prevention.
-- Structured request IDs, logs and audit events.
-- CI checks for backend, PostgreSQL E2E, Android and Admin Web.
-
-## Current project status
-
-The project is **presentation-ready and functionally complete for its academic scope**.
-
-- `main` includes the current **v1.4.0 feature set** described in [`CHANGELOG.md`](CHANGELOG.md).
-- The latest public signed Android package is **v1.3.0** in GitHub Releases.
-- The latest `main` CI run completed successfully after the presentation/UI polish work.
+- `main` contains the current **v1.4.0 feature set** plus repository/presentation cleanup.
+- The latest signed public Android package currently published in Releases is **v1.3.0**.
+- The verified presentation/UI code baseline passed the complete CPEB CI-CD workflow.
 - API and Admin Web are deployed publicly on Render.
 
-See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for the concise status sheet and [`docs/PRESENTATION.md`](docs/PRESENTATION.md) for the demo-oriented project explanation.
+See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for the canonical current status. Future improvements are separated into [`docs/roadmap/README.md`](docs/roadmap/README.md).
 
 ## Repository structure
 
 ```text
 apps/
+├── android/            Android booking application
 ├── admin-web/          Administration portal + Operations Center
-├── android/            Android application
 └── api/                NestJS backend
 
-docs/                  Architecture, API, database and project documentation
-evidence/              Test evidence and screenshots
-scripts/               Utility and verification scripts
+docs/                  Current documentation and technical reference
+evidence/              Screenshots, tests, logs and latest audit evidence
+scripts/               Development/verification utilities
 tests/                 Project verification resources
 ```
 
-## Continuous integration
+## Documentation
 
-Every pull request is validated through GitHub Actions. The pipeline includes:
+Start with [`docs/README.md`](docs/README.md).
 
-- Backend dependency/security gate.
-- Prisma schema validation and PostgreSQL migrations.
-- Backend build, unit tests and deep PostgreSQL E2E tests.
-- Deployable backend container build.
-- Android unit/API-contract tests, lint and APK build.
-- Admin Web JavaScript, security and API-contract checks.
-
-## Local development
+- [`docs/PRESENTATION.md`](docs/PRESENTATION.md) — simple explanation and demo flow.
+- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — canonical status sheet.
+- [`docs/architecture/`](docs/architecture/) — architecture and repository structure.
+- [`docs/api/`](docs/api/) — API notes and Postman resources.
+- [`docs/database/`](docs/database/) — database notes.
+- [`docs/roadmap/`](docs/roadmap/) — future improvements.
 
 <details>
-<summary><strong>Backend setup</strong></summary>
+<summary><strong>Local development and verification</strong></summary>
 
-Requirements: Node.js 22+, PostgreSQL 16, and npm.
+### Backend
 
 ```powershell
 cd apps\api
@@ -172,62 +134,32 @@ npm run seed:resources
 npm run start:dev
 ```
 
-Configure at least:
-
-```text
-DATABASE_URL
-JWT_SECRET
-SMTP_HOST
-SMTP_PORT
-SMTP_USER
-SMTP_PASSWORD
-MAIL_FROM
-```
-
-Administrative accounts are provisioned only from explicit environment variables. No public default administrator password is embedded in the active seed flow.
-
-</details>
-
-<details>
-<summary><strong>Verification commands</strong></summary>
-
-Backend:
+### Verification
 
 ```powershell
+# Backend
 cd apps\api
 npm run verify
 npm run test:e2e -- --runInBand
-```
 
-Android:
-
-```powershell
-cd apps\android
+# Android
+cd ..\android
 .\gradlew.bat testDebugUnitTest
 .\gradlew.bat lintDebug
 .\gradlew.bat assembleDebug
-```
 
-Admin Web:
-
-```powershell
-cd apps\admin-web
+# Admin Web
+cd ..\admin-web
 npm run ci
 ```
 
 </details>
 
-## Production deployment
+## Security and deployment
 
-The repository contains `render.yaml` for the production topology:
+The project includes bcrypt password hashing, JWT authentication, role-based authorization, validation, protected management operations, security headers, production CORS configuration, audit events and CI security checks.
 
-- API from `main`.
-- Admin Web from `main`.
-- PostgreSQL service.
-- Production CORS and security configuration.
-- Secrets stored as environment variables rather than committed to GitHub.
-
-For a long-lived institutional deployment, the next layer would include managed backups, formal secret rotation, monitoring/alerting, rate limiting, disaster recovery, penetration testing and university operational policies.
+`render.yaml` describes the deployed API/Admin/PostgreSQL topology. Secrets remain environment variables and are not committed to GitHub.
 
 ## Academic information
 
