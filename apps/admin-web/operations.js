@@ -43,9 +43,21 @@ const maintenanceEmpty = byId('maintenance-empty');
 const openReportsStat = byId('ops-open-reports');
 const activeMaintenanceStat = byId('ops-active-maintenance');
 const scheduledMaintenanceStat = byId('ops-scheduled-maintenance');
+const maintenanceCreate = byId('maintenance-create');
+const maintenanceDialog = byId('maintenance-dialog');
+const maintenanceForm = byId('maintenance-form');
+const maintenanceEquipment = byId('maintenance-equipment');
+const maintenanceTitleInput = byId('maintenance-title-input');
+const maintenanceDescription = byId('maintenance-description');
+const maintenanceStart = byId('maintenance-start');
+const maintenanceEnd = byId('maintenance-end');
+const maintenanceFormError = byId('maintenance-form-error');
+const maintenanceCancel = byId('maintenance-cancel');
+const maintenanceSubmit = byId('maintenance-submit');
 
 let reports = [];
 let maintenance = [];
+let equipment = [];
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -73,18 +85,65 @@ reportsStatus.addEventListener('change', renderReports);
 reportsSearch.addEventListener('input', renderReports);
 maintenanceStatus.addEventListener('change', renderMaintenance);
 maintenanceSearch.addEventListener('input', renderMaintenance);
+maintenanceCreate.addEventListener('click', () => openMaintenanceDialog());
+maintenanceCancel.addEventListener('click', () => closeMaintenanceDialog());
+maintenanceDialog.addEventListener('cancel', () => closeMaintenanceDialog());
+
+maintenanceForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  setMaintenanceFormError('');
+  const start = localInputToIso(maintenanceStart.value);
+  const end = localInputToIso(maintenanceEnd.value);
+  if (!start || !end) {
+    setMaintenanceFormError('Valid start and end times are required.');
+    return;
+  }
+  if (new Date(start).getTime() >= new Date(end).getTime()) {
+    setMaintenanceFormError('Maintenance must end after it starts.');
+    return;
+  }
+
+  setBusy(maintenanceSubmit, true, 'Scheduling…');
+  try {
+    await api.createMaintenance({
+      equipmentId: maintenanceEquipment.value,
+      title: maintenanceTitleInput.value,
+      description: maintenanceDescription.value,
+      startTime: start,
+      endTime: end,
+    });
+    closeMaintenanceDialog();
+    showMessage('Maintenance scheduled successfully.', false);
+    await refreshOperations({ preserveMessage: true });
+  } catch (error) {
+    if (isAuthFailure(error)) {
+      closeMaintenanceDialog();
+      logout('Your session is no longer authorized. Please sign in again.');
+      return;
+    }
+    setMaintenanceFormError(messageFor(error));
+  } finally {
+    setBusy(maintenanceSubmit, false, 'Schedule');
+  }
+});
 
 async function refreshOperations({ preserveMessage = false } = {}) {
   if (!api.hasSession()) return;
   if (!preserveMessage) hideMessage();
   setBusy(refreshButton, true, 'Refreshing…');
   try {
-    const [reportData, maintenanceData] = await Promise.all([api.reports(), api.maintenance()]);
+    const [reportData, maintenanceData, equipmentData] = await Promise.all([
+      api.reports(),
+      api.maintenance(),
+      api.equipment(),
+    ]);
     reports = Array.isArray(reportData) ? reportData : [];
     maintenance = Array.isArray(maintenanceData) ? maintenanceData : [];
+    equipment = Array.isArray(equipmentData) ? equipmentData : [];
     renderStats();
     renderReports();
     renderMaintenance();
+    renderEquipmentOptions();
   } catch (error) {
     if (isAuthFailure(error)) {
       logout('Your session is no longer authorized. Please sign in again.');
@@ -167,6 +226,46 @@ function renderMaintenance() {
     );
     maintenanceBody.append(row);
   }
+}
+
+function renderEquipmentOptions() {
+  const previous = maintenanceEquipment.value;
+  maintenanceEquipment.replaceChildren();
+  const eligible = equipment
+    .filter((item) => !['LOST', 'RETIRED'].includes(String(item?.status || '').toUpperCase()))
+    .sort((a, b) => String(a?.name || '').localeCompare(String(b?.name || '')));
+
+  for (const item of eligible) {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = [item?.name, item?.inventoryTag, item?.location].filter(Boolean).join(' · ');
+    maintenanceEquipment.append(option);
+  }
+  if (eligible.some((item) => item.id === previous)) maintenanceEquipment.value = previous;
+  maintenanceCreate.disabled = eligible.length === 0;
+}
+
+function openMaintenanceDialog() {
+  if (maintenanceEquipment.options.length === 0) {
+    showMessage('No eligible equipment is available for maintenance scheduling.', true);
+    return;
+  }
+  maintenanceForm.reset();
+  renderEquipmentOptions();
+  setMaintenanceFormError('');
+  const now = new Date();
+  now.setSeconds(0, 0);
+  const start = new Date(now.getTime() + 60 * 60 * 1000);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  maintenanceStart.value = toLocalInputValue(start);
+  maintenanceEnd.value = toLocalInputValue(end);
+  maintenanceDialog.showModal();
+  maintenanceEquipment.focus();
+}
+
+function closeMaintenanceDialog() {
+  setMaintenanceFormError('');
+  if (maintenanceDialog.open) maintenanceDialog.close();
 }
 
 function reportActions(item) {
@@ -308,6 +407,18 @@ function note(text) {
   return span;
 }
 
+function localInputToIso(value) {
+  if (typeof value !== 'string' || !value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function toLocalInputValue(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 function formatDateTime(value) {
   if (!value) return '—';
   const date = new Date(value);
@@ -331,8 +442,11 @@ function logout(text = '') {
   api.clearSession();
   reports = [];
   maintenance = [];
+  equipment = [];
   reportsBody.replaceChildren();
   maintenanceBody.replaceChildren();
+  maintenanceEquipment.replaceChildren();
+  closeMaintenanceDialog();
   opsView.hidden = true;
   loginView.hidden = false;
   hideMessage();
@@ -355,6 +469,11 @@ function hideMessage() {
 function setLoginError(text) {
   loginError.textContent = text;
   loginError.hidden = !text;
+}
+
+function setMaintenanceFormError(text) {
+  maintenanceFormError.textContent = text;
+  maintenanceFormError.hidden = !text;
 }
 
 function setBusy(button, busy, text) {
