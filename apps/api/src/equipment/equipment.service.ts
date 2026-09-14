@@ -21,6 +21,12 @@ type CreateEquipmentInput = {
   actorId: string;
 };
 
+type EquipmentQueryInput = {
+  q?: string;
+  category?: string;
+  status?: EquipmentStatus;
+};
+
 type UpdateEquipmentStatusInput = {
   equipmentId: string;
   status: EquipmentStatus;
@@ -43,8 +49,27 @@ export class EquipmentService {
     `;
   }
 
-  findAll() {
+  findAll(input: EquipmentQueryInput = {}) {
+    const search = input.q?.trim();
+    const category = input.category?.trim();
+    const where: Prisma.EquipmentWhereInput = {};
+
+    if (input.status) where.status = input.status;
+    if (category) {
+      where.category = { equals: category, mode: 'insensitive' };
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { inventoryTag: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } },
+        { location: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     return this.prisma.equipment.findMany({
+      where,
       orderBy: [
         { category: 'asc' },
         { name: 'asc' },

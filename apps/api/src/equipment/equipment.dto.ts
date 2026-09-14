@@ -8,6 +8,28 @@ import {
   MaxLength,
 } from 'class-validator';
 
+export class EquipmentQueryDto {
+  @ApiPropertyOptional({
+    description: 'Case-insensitive search across name, inventory tag, category, location and description.',
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  q?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by equipment category.', maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  category?: string;
+
+  @ApiPropertyOptional({ enum: EquipmentStatus })
+  @IsOptional()
+  @IsEnum(EquipmentStatus)
+  status?: EquipmentStatus;
+}
+
 export class CreateEquipmentDto {
   @ApiProperty()
   @IsString()
