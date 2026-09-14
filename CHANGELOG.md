@@ -13,6 +13,10 @@
 - Added searchable booking history with server-side status filtering, requester/resource search, recent-first ordering and booking status badges.
 - Added privacy-preserving local CSV exports for the currently filtered booking history and equipment inventory, with Excel-friendly UTF-8 encoding and no server-side storage.
 - Added a live university-services health indicator backed by the public `/health` endpoint, including last-check time, browser theme color and CPEB favicon.
+- Added a dedicated Operations Center for repair reports and maintenance workflows, linked from the administration dashboard.
+- Added repair-report filtering/search with only backend-authorized status transitions and a required diagnosis before resolution when missing.
+- Added maintenance filtering/search with protected `SCHEDULED → ACTIVE → COMPLETED/CANCELLED` lifecycle actions and backend conflict enforcement.
+- Added Operations Center summary counters for unresolved reports, active maintenance and scheduled maintenance.
 
 ### Android
 - Refreshed the CPEB launcher identity and unified the application name as CPEB University Booking.
@@ -30,11 +34,12 @@
 - Added optional `q`, `category` and `status` filters to `GET /equipment`.
 - Added case-insensitive search across equipment name, inventory tag, category, location and description.
 - Added validated status filtering and deterministic equipment ordering.
-- Reused the existing administrative booking-status filter for the new booking-history view without adding a redundant endpoint or database migration.
+- Reused the existing administrative booking-status filter for the booking-history view without adding a redundant endpoint or database migration.
+- Reused the existing repair-report and maintenance endpoints in the Operations Center without weakening their state machines.
 
 ### Security, delivery and maintenance
 - Added Admin Web CI security and API-contract checks alongside Android and backend verification.
-- Added dedicated contract tests for inventory filters, equipment status changes, booking history, service-health helpers and safe CSV serialization.
+- Added dedicated contract tests for inventory filters, equipment status changes, booking history, service-health helpers, CSV serialization and Operations Center mutations.
 - Kept the university health check independent of the administrator access token and configured it to use no-store requests.
 - Kept CSV exports entirely in the browser and excluded inventory management controls from exported data.
 - Removed an obsolete seed file that contained plaintext sample credentials.
