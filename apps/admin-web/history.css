@@ -1,0 +1,57 @@
+.history-panel { padding-top: 26px; }
+.history-heading { align-items: center; }
+.history-controls {
+  display: grid;
+  grid-template-columns: minmax(300px, 2fr) minmax(190px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 0 0 20px;
+  padding: 16px;
+  background: #f8fbff;
+  border: 1px solid #e2ebf4;
+  border-radius: 16px;
+}
+.history-controls input,
+.history-controls select { min-height: 46px; background-color: #fff; }
+.history-empty::before { content: "↺"; background: #edf4fb; color: #3d628a; }
+#history-table { min-width: 940px; }
+#history-table td:nth-child(2) .cell-stack {
+  position: relative;
+  padding-left: 50px;
+  min-height: 42px;
+  align-content: center;
+}
+#history-table td:nth-child(2) .cell-stack::before {
+  content: "BK";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg,#4b66a3,#173b72);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  box-shadow: 0 5px 14px rgba(8,43,99,.12);
+}
+.status-pending { color: #895300; background: #fff5df; border-color: #f1ddb1; }
+.status-approved { color: #116544; background: #eaf8f2; border-color: #c9eadc; }
+.status-rejected { color: #912b33; background: #fff0f1; border-color: #f0c8cc; }
+.status-cancelled { color: #6a4c51; background: #f7f0f1; border-color: #e4d6d8; }
+.status-returned { color: #59428e; background: #f1edfb; border-color: #dcd3f2; }
+.status-closed { color: #4f5968; background: #f1f3f5; border-color: #dce1e6; }
+
+@media (max-width: 900px) {
+  .history-controls { grid-template-columns: 1fr 1fr; }
+  .history-search-field { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .history-controls { grid-template-columns: 1fr; }
+  .history-search-field { grid-column: auto; }
+  .history-controls .clear-filters { width: 100%; }
+}
