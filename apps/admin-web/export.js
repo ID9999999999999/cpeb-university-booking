@@ -68,6 +68,8 @@ if (typeof document !== 'undefined') {
   const start = () => {
     attachExport('history-export', 'history-table', 'cpeb-booking-history', 5);
     attachExport('equipment-export', 'equipment-table', 'cpeb-equipment-inventory', 4);
+    attachExport('reports-export', 'reports-table', 'cpeb-repair-reports', 4);
+    attachExport('maintenance-export', 'maintenance-table', 'cpeb-maintenance', 4);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
   else start();
