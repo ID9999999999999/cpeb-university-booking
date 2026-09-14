@@ -11,8 +11,10 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/history.css">
   <link rel="stylesheet" href="/health.css">
+  <link rel="stylesheet" href="/export.css">
   <script src="/runtime-config.js" defer></script>
   <script type="module" src="/health.js"></script>
+  <script type="module" src="/export.js"></script>
   <script type="module" src="/app.js"></script>
 </head>
 <body>
@@ -103,7 +105,10 @@
             <h2 id="history-title">Booking history</h2>
             <p class="muted">Review current and previous requests by status, requester or resource.</p>
           </div>
-          <strong id="history-count" class="result-count">— bookings</strong>
+          <div class="panel-tools">
+            <strong id="history-count" class="result-count">— bookings</strong>
+            <button id="history-export" type="button" class="secondary export-button">Export CSV</button>
+          </div>
         </div>
 
         <div class="history-controls" role="search" aria-label="Booking history filters">
@@ -150,7 +155,10 @@
             <h2 id="inventory-title">Equipment inventory</h2>
             <p class="muted">Search live university resources by name, inventory tag, category, location or status. Administrators can safely update manual inventory states; workflow-owned states remain protected.</p>
           </div>
-          <strong id="equipment-count" class="result-count">— resources</strong>
+          <div class="panel-tools">
+            <strong id="equipment-count" class="result-count">— resources</strong>
+            <button id="equipment-export" type="button" class="secondary export-button">Export CSV</button>
+          </div>
         </div>
 
         <div class="inventory-controls" role="search" aria-label="Equipment inventory filters">
