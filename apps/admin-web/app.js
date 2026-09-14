@@ -21,6 +21,13 @@ const portalMessage = byId('portal-message');
 const bookingsTable = byId('bookings-table');
 const bookingsBody = byId('bookings-body');
 const emptyState = byId('empty-state');
+const historySearch = byId('history-search');
+const historyStatus = byId('history-status');
+const historyClear = byId('history-clear');
+const historyCount = byId('history-count');
+const historyTable = byId('history-table');
+const historyBody = byId('history-body');
+const historyEmpty = byId('history-empty');
 const equipmentSearch = byId('equipment-search');
 const equipmentCategory = byId('equipment-category');
 const equipmentStatus = byId('equipment-status');
@@ -40,6 +47,8 @@ const rejectConfirm = byId('reject-confirm');
 let rejectTarget = null;
 let equipmentSearchTimer = null;
 let equipmentRequestId = 0;
+let bookingHistoryRequestId = 0;
+let cachedBookingHistory = [];
 let currentRole = null;
 
 loginForm.addEventListener('submit', async (event) => {
@@ -70,6 +79,15 @@ logoutButton.addEventListener('click', () => logout());
 refreshButton.addEventListener('click', () => loadPortal());
 rejectCancel.addEventListener('click', () => closeRejectDialog());
 rejectDialog.addEventListener('cancel', () => closeRejectDialog());
+
+historySearch.addEventListener('input', () => renderBookingHistory(cachedBookingHistory));
+historyStatus.addEventListener('change', () => loadBookingHistory());
+historyClear.addEventListener('click', () => {
+  historySearch.value = '';
+  historyStatus.value = '';
+  historySearch.focus();
+  loadBookingHistory();
+});
 
 equipmentSearch.addEventListener('input', () => {
   globalThis.clearTimeout(equipmentSearchTimer);
@@ -115,7 +133,10 @@ async function loadPortal({ preserveMessage = false } = {}) {
     statActive.textContent = safeNumber(dashboard?.bookings?.active);
     statAvailable.textContent = safeNumber(dashboard?.equipment?.available);
     renderBookings(Array.isArray(bookings) ? bookings : []);
-    await loadEquipment({ preserveMessage: true });
+    await Promise.all([
+      loadBookingHistory({ preserveMessage: true }),
+      loadEquipment({ preserveMessage: true }),
+    ]);
   } catch (error) {
     if (isAuthFailure(error)) {
       logout('Your session is no longer authorized. Please sign in again.');
@@ -124,6 +145,36 @@ async function loadPortal({ preserveMessage = false } = {}) {
     showPortalMessage(messageFor(error), true);
   } finally {
     setBusy(refreshButton, false, 'Refresh all');
+  }
+}
+
+async function loadBookingHistory({ preserveMessage = false } = {}) {
+  if (!api.hasSession()) return;
+  if (!preserveMessage) hidePortalMessage();
+  const requestId = ++bookingHistoryRequestId;
+  historyTable.setAttribute('aria-busy', 'true');
+  historyCount.textContent = 'Loading…';
+
+  try {
+    const bookings = await api.bookings(historyStatus.value);
+    if (requestId !== bookingHistoryRequestId) return;
+    cachedBookingHistory = Array.isArray(bookings) ? bookings : [];
+    renderBookingHistory(cachedBookingHistory);
+  } catch (error) {
+    if (requestId !== bookingHistoryRequestId) return;
+    if (isAuthFailure(error)) {
+      logout('Your session is no longer authorized. Please sign in again.');
+      return;
+    }
+    cachedBookingHistory = [];
+    historyBody.replaceChildren();
+    historyTable.hidden = true;
+    historyEmpty.hidden = false;
+    historyEmpty.textContent = 'Booking history could not be loaded.';
+    historyCount.textContent = '— bookings';
+    showPortalMessage(messageFor(error), true);
+  } finally {
+    if (requestId === bookingHistoryRequestId) historyTable.removeAttribute('aria-busy');
   }
 }
 
@@ -181,6 +232,52 @@ function renderBookings(bookings) {
       actionCell(booking),
     );
     bookingsBody.append(row);
+  }
+}
+
+function renderBookingHistory(bookings) {
+  const search = historySearch.value.trim().toLowerCase();
+  const filtered = bookings
+    .filter((booking) => {
+      if (!search) return true;
+      return [
+        booking?.user?.fullName,
+        booking?.user?.studentId,
+        booking?.user?.email,
+        booking?.equipment?.name,
+        booking?.equipment?.inventoryTag,
+        booking?.equipment?.location,
+        booking?.reason,
+        booking?.status,
+      ].some((value) => String(value || '').toLowerCase().includes(search));
+    })
+    .slice()
+    .sort((a, b) => safeDateMillis(b?.startTime) - safeDateMillis(a?.startTime));
+
+  historyBody.replaceChildren();
+  historyTable.hidden = filtered.length === 0;
+  historyEmpty.hidden = filtered.length !== 0;
+  historyEmpty.textContent = 'No bookings match these filters.';
+  historyCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'booking' : 'bookings'}`;
+
+  for (const booking of filtered) {
+    const statusCell = document.createElement('td');
+    statusCell.append(statusBadge(booking?.status));
+    const row = document.createElement('tr');
+    row.append(
+      stackCell(
+        booking?.user?.fullName || 'Unknown user',
+        [booking?.user?.studentId, booking?.user?.email].filter(Boolean).join(' · '),
+      ),
+      stackCell(
+        booking?.equipment?.name || 'Unknown equipment',
+        booking?.equipment?.inventoryTag || '',
+      ),
+      stackCell(formatDateTime(booking?.startTime), `to ${formatDateTime(booking?.endTime)}`),
+      statusCell,
+      textCell(booking?.reason || '—'),
+    );
+    historyBody.append(row);
   }
 }
 
@@ -345,14 +442,22 @@ function logout(message = '') {
   currentRole = null;
   globalThis.clearTimeout(equipmentSearchTimer);
   equipmentRequestId += 1;
+  bookingHistoryRequestId += 1;
+  cachedBookingHistory = [];
   portalView.hidden = true;
   loginView.hidden = false;
   bookingsBody.replaceChildren();
+  historyBody.replaceChildren();
   equipmentBody.replaceChildren();
   bookingsTable.hidden = true;
+  historyTable.hidden = true;
   equipmentTable.hidden = true;
+  historyEmpty.hidden = true;
   equipmentEmpty.hidden = true;
+  historyCount.textContent = '— bookings';
   equipmentCount.textContent = '— resources';
+  historySearch.value = '';
+  historyStatus.value = '';
   equipmentSearch.value = '';
   equipmentCategory.value = '';
   equipmentStatus.value = '';
@@ -384,6 +489,12 @@ function textCell(value) {
   const td = document.createElement('td');
   td.textContent = value;
   return td;
+}
+
+function safeDateMillis(value) {
+  const date = new Date(value || 0);
+  const millis = date.getTime();
+  return Number.isFinite(millis) ? millis : 0;
 }
 
 function formatDateTime(value) {
