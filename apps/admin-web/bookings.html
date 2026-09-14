@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#082b63">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>CPEB Booking Control Center</title>
+  <link rel="icon" href="/brand.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/bookings.css">
+  <script src="/runtime-config.js" defer></script>
+  <script type="module" src="/export.js"></script>
+  <script type="module" src="/bookings.js"></script>
+</head>
+<body>
+  <main class="shell booking-control-shell">
+    <section id="booking-login-view" class="auth-card" aria-labelledby="booking-login-title">
+      <div class="brand-mark" aria-hidden="true">C</div>
+      <p class="eyebrow">CPEB University Booking</p>
+      <h1 id="booking-login-title">Booking Control Center</h1>
+      <p class="muted">Operational booking lifecycle for authorized administrators and lab managers.</p>
+      <form id="booking-login-form" autocomplete="on">
+        <label for="booking-email">University email</label>
+        <input id="booking-email" name="email" type="email" autocomplete="username" required maxlength="254">
+        <label for="booking-password">Password</label>
+        <input id="booking-password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+        <button id="booking-login-button" type="submit">Sign in</button>
+      </form>
+      <p id="booking-login-error" class="error-message" role="alert" hidden></p>
+      <p class="security-note">The access token is held in memory only and disappears on refresh, logout or navigation.</p>
+      <a class="booking-back-link" href="/">← Back to Administration Dashboard</a>
+    </section>
+
+    <section id="booking-control-view" hidden>
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CPEB University Booking</p>
+          <h1>Booking Control Center</h1>
+        </div>
+        <div class="account-area">
+          <div class="account-copy">
+            <strong id="booking-account-name"></strong>
+            <span id="booking-account-role" class="muted"></span>
+          </div>
+          <a class="secondary booking-nav-link" href="/">Dashboard</a>
+          <a class="secondary booking-nav-link" href="/operations.html">Operations</a>
+          <button id="booking-refresh" type="button" class="secondary">Refresh</button>
+          <button id="booking-logout" type="button" class="secondary">Log out</button>
+        </div>
+      </header>
+
+      <p id="booking-control-message" class="status-message" role="status" hidden></p>
+
+      <section class="booking-control-stats" aria-label="Booking operations summary">
+        <article class="booking-control-stat"><span>Awaiting checkout</span><strong id="booking-approved-count">—</strong></article>
+        <article class="booking-control-stat"><span>Checked out</span><strong id="booking-checkedout-count">—</strong></article>
+        <article class="booking-control-stat"><span>Awaiting close</span><strong id="booking-returned-count">—</strong></article>
+      </section>
+
+      <section class="panel" aria-labelledby="booking-control-title">
+        <div class="panel-heading booking-control-heading">
+          <div>
+            <h2 id="booking-control-title">Booking lifecycle</h2>
+            <p class="muted">Check equipment out, record returns and close completed bookings. Approval and rejection remain in the main dashboard.</p>
+          </div>
+          <div class="booking-control-tools">
+            <strong id="booking-control-count" class="result-count">— bookings</strong>
+            <button id="booking-control-export" type="button" class="secondary">Export CSV</button>
+          </div>
+        </div>
+
+        <div class="booking-control-filters" role="search" aria-label="Booking lifecycle filters">
+          <div class="control-field booking-control-search-field">
+            <label for="booking-control-search">Search</label>
+            <input id="booking-control-search" type="search" maxlength="200" placeholder="Student, email, equipment, tag, reason…" autocomplete="off">
+          </div>
+          <div class="control-field">
+            <label for="booking-control-status">Status</label>
+            <select id="booking-control-status">
+              <option value="">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="CHECKED_OUT">Checked out</option>
+              <option value="RETURNED">Returned</option>
+              <option value="CLOSED">Closed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+          <button id="booking-control-clear" type="button" class="secondary">Clear filters</button>
+        </div>
+
+        <div id="booking-control-empty" class="empty-state" hidden>No bookings match these filters.</div>
+        <div class="table-wrap">
+          <table id="booking-control-table" hidden>
+            <thead>
+              <tr>
+                <th>Requester</th>
+                <th>Resource</th>
+                <th>Period</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Management</th>
+              </tr>
+            </thead>
+            <tbody id="booking-control-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
