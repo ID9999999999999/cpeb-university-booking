@@ -21,6 +21,7 @@ USER node
 
 EXPOSE 3000
 
-# The resource seed is idempotent. A fresh hosted database therefore becomes
-# committee-ready after migrations without a separate manual seeding step.
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run seed:resources && node dist/main"]
+# Production bootstrap is idempotent: committed migrations are applied first,
+# university resources are refreshed safely, then the configured administrative
+# accounts are guaranteed to exist before the API starts accepting traffic.
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run seed:resources && npm run seed:admin && node dist/main"]
