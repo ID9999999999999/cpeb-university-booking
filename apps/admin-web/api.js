@@ -94,6 +94,18 @@ export class CpebAdminApi {
     return this.#request('/admin/bookings?status=PENDING');
   }
 
+  equipment({ q = '', category = '', status = '' } = {}) {
+    const params = new URLSearchParams();
+    const search = typeof q === 'string' ? q.trim().slice(0, 200) : '';
+    const categoryValue = typeof category === 'string' ? category.trim().slice(0, 100) : '';
+    const statusValue = typeof status === 'string' ? status.trim() : '';
+    if (search) params.set('q', search);
+    if (categoryValue) params.set('category', categoryValue);
+    if (statusValue) params.set('status', statusValue);
+    const query = params.toString();
+    return this.#request(`/equipment${query ? `?${query}` : ''}`);
+  }
+
   approveBooking(id) {
     return this.#request(`/admin/bookings/${encodeURIComponent(id)}/approve`, { method: 'PATCH' });
   }

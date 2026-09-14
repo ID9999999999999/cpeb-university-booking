@@ -98,6 +98,46 @@ test('401 responses clear the in-memory session', async () => {
   assert.equal(api.hasSession(), false);
 });
 
+test('equipment inventory encodes bounded search, category and status filters', async () => {
+  const requests = [];
+  let step = 0;
+  const fetchImpl = async (url, options) => {
+    step += 1;
+    if (step === 1) return jsonResponse(200, { accessToken: 't', user: { role: 'ADMIN' } });
+    if (step === 2) return jsonResponse(200, { id: 'u1', role: 'ADMIN' });
+    requests.push({ url, options });
+    return jsonResponse(200, []);
+  };
+
+  const api = new CpebAdminApi('https://api.example.test', fetchImpl);
+  await api.login('a@example.test', 'password');
+  await api.equipment({ q: '  3D printer & kit  ', category: ' LAB ', status: 'AVAILABLE' });
+
+  assert.equal(
+    requests[0].url,
+    'https://api.example.test/equipment?q=3D+printer+%26+kit&category=LAB&status=AVAILABLE',
+  );
+  assert.equal(requests[0].options.method, 'GET');
+  assert.equal(requests[0].options.headers.Authorization, 'Bearer t');
+});
+
+test('equipment inventory omits empty filters', async () => {
+  const requests = [];
+  let step = 0;
+  const fetchImpl = async (url, options) => {
+    step += 1;
+    if (step === 1) return jsonResponse(200, { accessToken: 't', user: { role: 'LAB_MANAGER' } });
+    if (step === 2) return jsonResponse(200, { id: 'u1', role: 'LAB_MANAGER' });
+    requests.push({ url, options });
+    return jsonResponse(200, []);
+  };
+
+  const api = new CpebAdminApi('https://api.example.test', fetchImpl);
+  await api.login('m@example.test', 'password');
+  await api.equipment();
+  assert.equal(requests[0].url, 'https://api.example.test/equipment');
+});
+
 test('reject sends a bounded JSON object only when a reason exists', async () => {
   const requests = [];
   let step = 0;
