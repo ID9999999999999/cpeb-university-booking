@@ -120,6 +120,35 @@ export class CpebAdminApi {
     });
   }
 
+  reports(status = '') {
+    const normalized = typeof status === 'string' ? status.trim().toUpperCase() : '';
+    return this.#request(`/admin/reports${normalized ? `?status=${encodeURIComponent(normalized)}` : ''}`);
+  }
+
+  updateReportStatus(id, status, diagnosis = '') {
+    const normalizedStatus = typeof status === 'string' ? status.trim().toUpperCase() : '';
+    if (!normalizedStatus) throw new ApiError('Report status is required');
+    const normalizedDiagnosis = typeof diagnosis === 'string' ? diagnosis.trim().slice(0, 4000) : '';
+    return this.#request(`/admin/reports/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: normalizedDiagnosis ? { status: normalizedStatus, diagnosis: normalizedDiagnosis } : { status: normalizedStatus },
+    });
+  }
+
+  maintenance(status = '') {
+    const normalized = typeof status === 'string' ? status.trim().toUpperCase() : '';
+    return this.#request(`/admin/maintenance${normalized ? `?status=${encodeURIComponent(normalized)}` : ''}`);
+  }
+
+  updateMaintenanceStatus(id, status) {
+    const normalizedStatus = typeof status === 'string' ? status.trim().toUpperCase() : '';
+    if (!normalizedStatus) throw new ApiError('Maintenance status is required');
+    return this.#request(`/admin/maintenance/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: { status: normalizedStatus },
+    });
+  }
+
   approveBooking(id) {
     return this.#request(`/admin/bookings/${encodeURIComponent(id)}/approve`, { method: 'PATCH' });
   }
