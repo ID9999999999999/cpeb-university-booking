@@ -1,25 +1,30 @@
-# Documentation
+# CPEB Documentation
 
-This directory contains the project documentation, organized for both presentation and engineering review.
+This folder is organized so an evaluator can understand the project quickly, while technical reviewers can still reach the engineering details.
 
 ## Start here
 
-- [`PRESENTATION.md`](PRESENTATION.md) — simple, non-technical project explanation and live-demo sequence.
-- [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — concise completion/status sheet, live links and future work.
-- [`../README.md`](../README.md) — main project overview and quick access links.
+1. [`PRESENTATION.md`](PRESENTATION.md) — simple, non-technical explanation and live-demo sequence.
+2. [`PROJECT_STATUS.md`](PROJECT_STATUS.md) — current completion state, live links, project scale and future work.
+3. [`../README.md`](../README.md) — main repository overview.
+4. [`roadmap/README.md`](roadmap/README.md) — improvements planned after the academic core.
 
-## Engineering documentation
+## Engineering reference
 
-- `architecture/` — system boundaries, components and data flow.
-- `api/` — API documentation and client collections.
-- `database/` — data model and database design.
-- `decisions/` — architecture decision records.
-- `inventory/` — project/resource inventory documentation.
-- `progress/` — weekly progress reports.
-- `project-management/` — project-management material.
-- `roadmap/` — milestones and planned improvements.
-- `recovery/` — project recovery/history material.
+| Area | Purpose |
+|---|---|
+| [`architecture/`](architecture/) | System boundaries, components and repository structure |
+| [`api/`](api/) | API notes, Postman collection and local environment |
+| [`database/`](database/) | Data model and persistence notes |
+| [`decisions/`](decisions/) | Architecture decisions |
+| [`progress/`](progress/) | Historical progress notes |
+| [`project-management/`](project-management/) | Lightweight historical pointers |
+| [`roadmap/`](roadmap/) | Future product and production improvements |
 
 ## Evidence
 
-Test screenshots, verification output and project-audit evidence are kept in [`../evidence/`](../evidence/).
+Verification screenshots, test output and the current audit snapshot are kept in [`../evidence/`](../evidence/).
+
+## Documentation rule
+
+Current status is documented only in [`PROJECT_STATUS.md`](PROJECT_STATUS.md). Older working notes are not used as the source of truth, which prevents contradictory project-status information.
