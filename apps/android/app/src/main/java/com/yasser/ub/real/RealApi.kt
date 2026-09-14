@@ -143,7 +143,12 @@ interface RealApi {
     suspend fun me(@Header("Authorization") authorization: String): UserDto
 
     @GET("equipment")
-    suspend fun equipment(@Header("Authorization") authorization: String): List<EquipmentDto>
+    suspend fun equipment(
+        @Header("Authorization") authorization: String,
+        @Query("q") query: String? = null,
+        @Query("category") category: String? = null,
+        @Query("status") status: String? = null,
+    ): List<EquipmentDto>
 
     @GET("bookings/mine")
     suspend fun bookings(@Header("Authorization") authorization: String): List<BookingDto>
