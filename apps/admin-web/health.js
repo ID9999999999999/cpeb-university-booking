@@ -62,8 +62,22 @@ export async function checkUniversityHealth({ fetchImpl = globalThis.fetch, now 
   }
 }
 
+function installOperationsLink() {
+  const accountArea = document.querySelector('.account-area');
+  const logoutButton = document.getElementById('logout-button');
+  if (!accountArea || !logoutButton || document.getElementById('operations-center-link')) return;
+  const link = document.createElement('a');
+  link.id = 'operations-center-link';
+  link.className = 'operations-center-link';
+  link.href = '/operations.html';
+  link.textContent = 'Operations';
+  link.setAttribute('aria-label', 'Open repair reports and maintenance Operations Center');
+  accountArea.insertBefore(link, logoutButton);
+}
+
 if (typeof document !== 'undefined') {
   const start = () => {
+    installOperationsLink();
     void checkUniversityHealth();
     globalThis.setInterval(() => void checkUniversityHealth(), 60_000);
   };

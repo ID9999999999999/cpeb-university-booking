@@ -14,7 +14,7 @@ A complete university resource-booking system with an Android student client, a 
 
 Students and teachers can browse university resources, check availability, submit reservations, follow booking decisions, cancel eligible bookings, complete bookings, and report equipment problems.
 
-Authorized staff can review pending bookings, approve or reject requests, manage equipment and maintenance, process repair tickets, manage users according to role, and review audit records.
+Authorized staff can review pending bookings, approve or reject requests, search booking history, manage the equipment inventory, operate repair and maintenance workflows, and monitor university-service health.
 
 ### Booking workflow
 
@@ -44,7 +44,7 @@ The administration portal completes the approval loop: a request created by a st
 | Component | Technology | Purpose |
 |---|---|---|
 | Android | Kotlin, Jetpack Compose, Material 3 | Student and teacher booking client |
-| Admin Web | Dependency-free browser UI + Node static server | Secure booking approval portal |
+| Admin Web | Dependency-free browser UI + Node static server | Booking administration, inventory and operations center |
 | API | NestJS, TypeScript | Authentication, booking, equipment and administration API |
 | Database | PostgreSQL 16 + Prisma | Persistent university data |
 
@@ -52,7 +52,7 @@ The administration portal completes the approval loop: a request created by a st
 
 ```text
 apps/
-├── admin-web/          Administration portal
+├── admin-web/          Administration portal + Operations Center
 ├── android/            Android application
 └── api/                NestJS backend
 
@@ -80,10 +80,10 @@ tests/                 Project verification resources
 ### Equipment and resources
 
 - Searchable and filterable university resource catalog
-- Rooms, laboratories, media equipment, sports resources, and parking resources
+- 70 seeded university resources across rooms, laboratories, media, sports and parking
 - Inventory-tag uniqueness
 - Equipment detail and availability
-- Administrative creation and status management
+- Administrative creation and safe status management
 - Modern category illustrations and CPEB visual identity
 - Audit events for equipment changes
 
@@ -104,13 +104,26 @@ tests/                 Project verification resources
 ### Administration portal
 
 - Secure administrator and lab-manager sign-in
-- Pending, active, and available-equipment summary cards
-- Pending request table with requester, resource, period, reason, and actions
-- Approve and reject actions connected to the production API
-- Rejection reason support
-- Responsive desktop/mobile styling
-- Modern CPEB branding
-- CSP, clickjacking protection, no-referrer policy, no-store caching, and restrictive browser permissions
+- Pending, active and available-equipment summary cards
+- Pending request approval/rejection queue
+- Searchable booking history with status filters and recent-first ordering
+- Live equipment inventory with search, category/status filters and role-aware management
+- Local CSV exports for the current filtered booking and equipment views
+- Live university-services health indicator
+- Direct entry to the Operations Center
+- Responsive desktop/mobile styling and modern CPEB branding
+- CSP, clickjacking protection, no-referrer policy, no-store caching and restrictive browser permissions
+
+### Operations Center
+
+- Dedicated repair-report and maintenance workspace at `/operations.html`
+- Repair-ticket search and status filtering
+- UI exposes only transitions permitted by the backend state machine
+- Diagnosis required before a report can be resolved when none exists
+- Maintenance search and status filtering
+- Protected `SCHEDULED → ACTIVE → COMPLETED/CANCELLED` maintenance lifecycle
+- Booking-conflict and checked-out-equipment safety rules remain backend-authoritative
+- Summary counters for unresolved reports, active maintenance and scheduled maintenance
 
 ### Maintenance and repair
 
