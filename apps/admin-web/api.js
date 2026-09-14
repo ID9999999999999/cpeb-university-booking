@@ -106,6 +106,15 @@ export class CpebAdminApi {
     return this.#request(`/equipment${query ? `?${query}` : ''}`);
   }
 
+  updateEquipmentStatus(id, status) {
+    const normalizedStatus = typeof status === 'string' ? status.trim().toUpperCase() : '';
+    if (!normalizedStatus) throw new ApiError('Equipment status is required');
+    return this.#request(`/equipment/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: { status: normalizedStatus },
+    });
+  }
+
   approveBooking(id) {
     return this.#request(`/admin/bookings/${encodeURIComponent(id)}/approve`, { method: 'PATCH' });
   }

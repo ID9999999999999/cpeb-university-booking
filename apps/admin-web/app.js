@@ -2,6 +2,8 @@ import { ApiError, CpebAdminApi } from './api.js';
 
 const config = globalThis.CPEB_ADMIN_CONFIG || {};
 const api = new CpebAdminApi(config.apiBaseUrl || 'http://localhost:3000');
+const SAFE_EQUIPMENT_STATUSES = Object.freeze(['AVAILABLE', 'RESERVED', 'LOST', 'RETIRED']);
+const WORKFLOW_EQUIPMENT_STATUSES = new Set(['CHECKED_OUT', 'UNDER_MAINTENANCE']);
 
 const loginView = byId('login-view');
 const portalView = byId('portal-view');
@@ -38,6 +40,7 @@ const rejectConfirm = byId('reject-confirm');
 let rejectTarget = null;
 let equipmentSearchTimer = null;
 let equipmentRequestId = 0;
+let currentRole = null;
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -50,6 +53,7 @@ loginForm.addEventListener('submit', async (event) => {
   try {
     const session = await api.login(email, password);
     loginForm.reset();
+    currentRole = session.user.role;
     accountName.textContent = session.user.fullName || session.user.email;
     accountRole.textContent = humanizeRole(session.user.role);
     loginView.hidden = true;
@@ -196,9 +200,82 @@ function renderEquipment(equipment) {
       textCell(humanizeRole(item?.category || 'Unknown')),
       textCell(item?.location || 'University campus'),
       statusCell,
+      equipmentActionCell(item),
     );
     equipmentBody.append(row);
   }
+}
+
+function equipmentActionCell(item) {
+  const td = document.createElement('td');
+  const status = String(item?.status || '').toUpperCase();
+
+  if (currentRole !== 'ADMIN') {
+    const note = document.createElement('span');
+    note.className = 'read-only-note';
+    note.textContent = 'Read only';
+    td.append(note);
+    return td;
+  }
+
+  if (WORKFLOW_EQUIPMENT_STATUSES.has(status)) {
+    const note = document.createElement('span');
+    note.className = 'workflow-note';
+    note.textContent = 'Managed by workflow';
+    td.append(note);
+    return td;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'equipment-actions';
+  const select = document.createElement('select');
+  select.className = 'compact-select';
+  select.setAttribute('aria-label', `New status for ${item?.name || 'equipment'}`);
+
+  for (const value of SAFE_EQUIPMENT_STATUSES) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = humanizeRole(value);
+    select.append(option);
+  }
+  if (SAFE_EQUIPMENT_STATUSES.includes(status)) select.value = status;
+
+  const update = document.createElement('button');
+  update.type = 'button';
+  update.className = 'secondary compact-button';
+  update.textContent = 'Update';
+  update.disabled = select.value === status;
+  select.addEventListener('change', () => {
+    update.disabled = select.value === status;
+  });
+
+  update.addEventListener('click', async () => {
+    const targetStatus = select.value;
+    if (!targetStatus || targetStatus === status) return;
+    const resourceName = item?.name || 'this resource';
+    if (!globalThis.confirm(`Change ${resourceName} from ${humanizeRole(status)} to ${humanizeRole(targetStatus)}?`)) return;
+
+    setBusy(update, true, 'Updating…');
+    select.disabled = true;
+    try {
+      await api.updateEquipmentStatus(item.id, targetStatus);
+      showPortalMessage(`${resourceName} is now ${humanizeRole(targetStatus)}.`, false);
+      await loadPortal({ preserveMessage: true });
+    } catch (error) {
+      if (isAuthFailure(error)) {
+        logout('Your session is no longer authorized. Please sign in again.');
+        return;
+      }
+      showPortalMessage(messageFor(error), true);
+    } finally {
+      select.disabled = false;
+      setBusy(update, false, 'Update');
+    }
+  });
+
+  wrapper.append(select, update);
+  td.append(wrapper);
+  return td;
 }
 
 function statusBadge(value) {
@@ -265,6 +342,7 @@ function closeRejectDialog() {
 
 function logout(message = '') {
   api.clearSession();
+  currentRole = null;
   globalThis.clearTimeout(equipmentSearchTimer);
   equipmentRequestId += 1;
   portalView.hidden = true;
