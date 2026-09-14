@@ -101,6 +101,11 @@ private val IMG_ROOM = R.drawable.lecture_hall_a
 private val IMG_LAB = R.drawable.physics_laboratory_2
 private val IMG_MEDIA = R.drawable.canon_camera_kit
 private val IMG_PARKING = R.drawable.campus_parking_zone
+private val IMG_XR = R.drawable.equipment_vr_quest3
+private val IMG_LAPTOP = R.drawable.equipment_laptop_xps13
+private val IMG_CAMERA_90D = R.drawable.equipment_canon_eos90d
+private val IMG_MICROSCOPE = R.drawable.equipment_microscope
+private val IMG_DRONE = R.drawable.equipment_drone_mini4pro
 private object UB {
     val Blue = Color(0xFF0B5CFF)
     val BlueDark = Color(0xFF052B85)
@@ -935,12 +940,20 @@ private fun equipmentToResourceUi(e: EquipmentDto): ResourceUi {
         "PARKING", "ACCESS" -> ResourceKind.Parking
         else -> ResourceKind.Media
     }
-    val image = when (kind) {
-        ResourceKind.Rooms -> IMG_ROOM
-        ResourceKind.Labs -> IMG_LAB
-        ResourceKind.Media -> IMG_MEDIA
-        ResourceKind.Sports -> null
-        ResourceKind.Parking -> IMG_PARKING
+    val inventoryTag = e.inventoryTag.uppercase()
+    val image = when (inventoryTag) {
+        "LAB-XR-02", "LAB-VR-01" -> IMG_XR
+        "LAB-LAP-02", "LAB-LAP-01" -> IMG_LAPTOP
+        "LAB-MIC-02", "LAB-MIC-01" -> IMG_MICROSCOPE
+        "MEDIA-CAM-02", "MEDIA-CAM-01" -> IMG_CAMERA_90D
+        "MEDIA-DRONE-01" -> IMG_DRONE
+        else -> when (kind) {
+            ResourceKind.Rooms -> IMG_ROOM
+            ResourceKind.Labs -> IMG_LAB
+            ResourceKind.Media -> IMG_MEDIA
+            ResourceKind.Sports -> null
+            ResourceKind.Parking -> IMG_PARKING
+        }
     }
     val color = when (kind) {
         ResourceKind.Rooms -> UB.Blue
