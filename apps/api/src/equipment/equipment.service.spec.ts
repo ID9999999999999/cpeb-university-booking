@@ -27,6 +27,50 @@ describe('EquipmentService consistency', () => {
     service = new EquipmentService(prisma);
   });
 
+  it('keeps the default equipment list deterministic', async () => {
+    prisma.equipment.findMany.mockResolvedValue([]);
+
+    await service.findAll();
+
+    expect(prisma.equipment.findMany).toHaveBeenCalledWith({
+      where: {},
+      orderBy: [
+        { category: 'asc' },
+        { name: 'asc' },
+        { inventoryTag: 'asc' },
+      ],
+    });
+  });
+
+  it('builds validated case-insensitive search, category and status filters', async () => {
+    prisma.equipment.findMany.mockResolvedValue([]);
+
+    await service.findAll({
+      q: '  printer  ',
+      category: ' lab ',
+      status: EquipmentStatus.AVAILABLE,
+    });
+
+    expect(prisma.equipment.findMany).toHaveBeenCalledWith({
+      where: {
+        status: EquipmentStatus.AVAILABLE,
+        category: { equals: 'lab', mode: 'insensitive' },
+        OR: [
+          { name: { contains: 'printer', mode: 'insensitive' } },
+          { inventoryTag: { contains: 'printer', mode: 'insensitive' } },
+          { category: { contains: 'printer', mode: 'insensitive' } },
+          { location: { contains: 'printer', mode: 'insensitive' } },
+          { description: { contains: 'printer', mode: 'insensitive' } },
+        ],
+      },
+      orderBy: [
+        { category: 'asc' },
+        { name: 'asc' },
+        { inventoryTag: 'asc' },
+      ],
+    });
+  });
+
   it('rejects manually forcing CHECKED_OUT because booking owns that state', async () => {
     tx.equipment.findUnique.mockResolvedValue({
       id: 'e1',
