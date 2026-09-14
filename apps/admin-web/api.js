@@ -90,8 +90,13 @@ export class CpebAdminApi {
     return this.#request('/admin/dashboard');
   }
 
+  bookings(status = '') {
+    const normalized = typeof status === 'string' ? status.trim().toUpperCase() : '';
+    return this.#request(`/admin/bookings${normalized ? `?status=${encodeURIComponent(normalized)}` : ''}`);
+  }
+
   pendingBookings() {
-    return this.#request('/admin/bookings?status=PENDING');
+    return this.bookings('PENDING');
   }
 
   equipment({ q = '', category = '', status = '' } = {}) {
