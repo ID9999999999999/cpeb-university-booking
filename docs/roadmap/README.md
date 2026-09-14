@@ -1,38 +1,39 @@
 # Roadmap
 
-## Phase 1 — Foundation ✅
+The academic core of CPEB is complete. This roadmap now contains only improvements for a later version or a long-lived institutional deployment.
 
-- ✅ Project scope
-- ✅ Backend core
-- ✅ Database schema
-- ✅ Core booking rule
-- ✅ Evidence structure
-- ✅ Public repository
-- ✅ Android application foundation
+## Completed academic core
 
-## Phase 2 — Integration ✅
+- Android student/teacher application.
+- Administration web portal.
+- NestJS API and PostgreSQL persistence.
+- Registration, verification, login and role-based access.
+- Equipment/resource catalog and availability.
+- Booking request, approval/rejection, check-out, return and close lifecycle.
+- Booking-conflict prevention.
+- Maintenance scheduling and maintenance-based booking blocking.
+- Repair-ticket workflow.
+- Audit logging.
+- Swagger/OpenAPI and Postman resources.
+- Automated backend, PostgreSQL, Android and Admin Web checks.
+- Production API and Admin Web deployment.
+- Signed Android release pipeline.
 
-- ✅ Registration and login
-- ✅ Email verification
-- ✅ JWT authentication
-- ✅ Android API client
-- ✅ Android-to-backend integration
-- ✅ Real booking workflow
-- ✅ Real user session
-- ✅ Equipment and booking management
-- ✅ Repair reporting
-- ✅ GitHub Actions CI
+## Next product improvements
 
-## Phase 3 — Finalization 🟡
+1. **Notifications** — push/email reminders for booking decisions, returns and maintenance.
+2. **Analytics** — usage dashboards, popular-resource reports and operational statistics.
+3. **Multilingual UI** — additional language support for the Android and administration interfaces.
+4. **UX polish** — accessibility, animations and additional presentation refinement.
+5. **Admin productivity** — richer filters, bulk operations and reporting.
 
-- 🟡 Swagger / OpenAPI
-- 🟡 Postman collection
-- 🟡 API versioning
-- 🟡 Stronger validation and error handling
-- 🟡 Security hardening
-- 🟡 Expanded automated tests
-- 🟡 Optional deployment
-- 🟡 Final report
-- 🟡 Final presentation
-- 🟡 Demonstration and defense preparation
-- 🟡 Final release
+## Long-term production hardening
+
+- Managed database backups and disaster recovery.
+- Formal secret rotation.
+- Monitoring and alerting.
+- Rate limiting and abuse protection.
+- Load and penetration testing.
+- Institutional operational procedures and support ownership.
+
+These items are future improvements, not missing requirements for the current academic booking workflow.
