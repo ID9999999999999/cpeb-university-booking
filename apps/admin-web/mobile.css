@@ -1,0 +1,175 @@
+@media (max-width: 720px) {
+  .shell {
+    width: calc(100% - 12px);
+    padding: 12px 0 40px;
+  }
+
+  .panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .panel-heading,
+  .history-heading,
+  .inventory-heading {
+    gap: 12px;
+  }
+
+  .panel-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  #bookings-table,
+  #history-table,
+  #equipment-table {
+    min-width: 0;
+  }
+
+  #bookings-table thead,
+  #history-table thead,
+  #equipment-table thead {
+    display: none;
+  }
+
+  #bookings-table,
+  #bookings-table tbody,
+  #bookings-table tr,
+  #bookings-table td,
+  #history-table,
+  #history-table tbody,
+  #history-table tr,
+  #history-table td,
+  #equipment-table,
+  #equipment-table tbody,
+  #equipment-table tr,
+  #equipment-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #bookings-table tbody,
+  #history-table tbody,
+  #equipment-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  #bookings-table tr,
+  #history-table tr,
+  #equipment-table tr {
+    padding: 14px;
+    border: 1px solid #dfe8f2;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(16,43,79,.045);
+  }
+
+  #bookings-table td,
+  #history-table td,
+  #equipment-table td {
+    padding: 8px 0;
+    border: 0;
+  }
+
+  #bookings-table td + td,
+  #history-table td + td,
+  #equipment-table td + td {
+    border-top: 1px solid #edf2f7;
+  }
+
+  #bookings-table td::before,
+  #history-table td::before,
+  #equipment-table td::before {
+    display: block;
+    margin-bottom: 5px;
+    color: #73859c;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .075em;
+    text-transform: uppercase;
+  }
+
+  #bookings-table td:nth-child(1)::before { content: "Requester"; }
+  #bookings-table td:nth-child(2)::before { content: "Equipment"; }
+  #bookings-table td:nth-child(3)::before { content: "Period"; }
+  #bookings-table td:nth-child(4)::before { content: "Reason"; }
+  #bookings-table td:nth-child(5)::before { content: "Actions"; }
+
+  #history-table td:nth-child(1)::before { content: "Requester"; }
+  #history-table td:nth-child(2)::before { content: "Resource"; }
+  #history-table td:nth-child(3)::before { content: "Period"; }
+  #history-table td:nth-child(4)::before { content: "Status"; }
+  #history-table td:nth-child(5)::before { content: "Reason"; }
+
+  #equipment-table td:nth-child(1)::before { content: "Resource"; }
+  #equipment-table td:nth-child(2)::before { content: "Category"; }
+  #equipment-table td:nth-child(3)::before { content: "Location"; }
+  #equipment-table td:nth-child(4)::before { content: "Status"; }
+  #equipment-table td:nth-child(5)::before { content: "Management"; }
+
+  #bookings-table td:nth-child(2) .cell-stack,
+  #history-table td:nth-child(2) .cell-stack,
+  #equipment-table td:first-child .cell-stack {
+    padding-left: 48px;
+  }
+
+  .actions,
+  .equipment-actions {
+    width: 100%;
+  }
+
+  .actions button,
+  .equipment-actions button {
+    flex: 1 1 auto;
+    min-height: 42px;
+  }
+
+  .equipment-actions {
+    min-width: 0;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .compact-select,
+  .compact-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  #reject-dialog form {
+    padding: 20px;
+  }
+
+  .dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .dialog-actions button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .stat-card,
+  .panel,
+  .service-health,
+  .status-badge,
+  .result-count {
+    border: 1px solid CanvasText;
+  }
+}
