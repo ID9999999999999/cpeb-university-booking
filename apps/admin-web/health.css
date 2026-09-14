@@ -50,6 +50,22 @@
   box-shadow: 0 0 0 4px rgba(177,59,67,.12);
 }
 .service-health.is-offline strong { color: #8b252c; }
+.operations-center-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 9px 13px;
+  border: 1px solid #d5e1ed;
+  border-radius: 12px;
+  background: #eef4fa;
+  color: #082b63;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform .16s ease, filter .16s ease;
+}
+.operations-center-link:hover { transform: translateY(-1px); filter: brightness(.98); }
 
 @media (max-width: 900px) {
   .service-health { min-width: 0; }
@@ -59,4 +75,5 @@
 @media (max-width: 720px) {
   .service-health { width: 100%; }
   .service-health small { display: inline; }
+  .operations-center-link { flex: 1 1 auto; justify-content: center; }
 }
