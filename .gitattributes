@@ -1,0 +1,7 @@
+# Keep GitHub language statistics focused on the product code.
+# Operational scripts and generated evidence support the project but are not the core application.
+
+scripts/** linguist-vendored
+evidence/** linguist-generated
+docs/recovery/** linguist-generated
+*.ps1 linguist-detectable=false
