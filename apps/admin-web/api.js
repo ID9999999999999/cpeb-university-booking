@@ -180,6 +180,18 @@ export class CpebAdminApi {
     });
   }
 
+  checkoutBooking(id) {
+    return this.#request(`/admin/bookings/${encodeURIComponent(id)}/check-out`, { method: 'PATCH' });
+  }
+
+  returnBooking(id) {
+    return this.#request(`/admin/bookings/${encodeURIComponent(id)}/return`, { method: 'PATCH' });
+  }
+
+  closeBooking(id) {
+    return this.#request(`/admin/bookings/${encodeURIComponent(id)}/close`, { method: 'PATCH' });
+  }
+
   async #request(path, options = {}) {
     const { method = 'GET', body, authenticated = true } = options;
     const headers = { Accept: 'application/json' };
