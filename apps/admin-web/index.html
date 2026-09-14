@@ -4,11 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#082b63">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>CPEB Administration</title>
+  <link rel="icon" href="/brand.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/history.css">
+  <link rel="stylesheet" href="/health.css">
   <script src="/runtime-config.js" defer></script>
+  <script type="module" src="/health.js"></script>
   <script type="module" src="/app.js"></script>
 </head>
 <body>
@@ -36,6 +40,13 @@
           <h1>Administration dashboard</h1>
         </div>
         <div class="account-area">
+          <div id="service-health" class="service-health is-checking" role="status" aria-live="polite">
+            <span class="service-health-dot" aria-hidden="true"></span>
+            <span class="service-health-copy">
+              <strong id="service-health-label">Checking services…</strong>
+              <small id="service-health-time">Checking university API…</small>
+            </span>
+          </div>
           <div class="account-copy">
             <strong id="account-name"></strong>
             <span id="account-role" class="muted"></span>
