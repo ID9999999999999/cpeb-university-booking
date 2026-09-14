@@ -138,6 +138,38 @@ test('equipment inventory omits empty filters', async () => {
   assert.equal(requests[0].url, 'https://api.example.test/equipment');
 });
 
+test('equipment status updates use encoded IDs and normalized status JSON', async () => {
+  const requests = [];
+  let step = 0;
+  const fetchImpl = async (url, options) => {
+    step += 1;
+    if (step === 1) return jsonResponse(200, { accessToken: 't', user: { role: 'ADMIN' } });
+    if (step === 2) return jsonResponse(200, { id: 'u1', role: 'ADMIN' });
+    requests.push({ url, options });
+    return jsonResponse(200, { decision: 'EQUIPMENT_STATUS_UPDATED' });
+  };
+
+  const api = new CpebAdminApi('https://api.example.test', fetchImpl);
+  await api.login('a@example.test', 'password');
+  await api.updateEquipmentStatus('equipment id/1', '  retired  ');
+
+  assert.equal(requests[0].url, 'https://api.example.test/equipment/equipment%20id%2F1/status');
+  assert.equal(requests[0].options.method, 'PATCH');
+  assert.deepEqual(JSON.parse(requests[0].options.body), { status: 'RETIRED' });
+});
+
+test('equipment status updates reject empty status before any request', async () => {
+  let step = 0;
+  const api = new CpebAdminApi('https://api.example.test', async () => {
+    step += 1;
+    if (step === 1) return jsonResponse(200, { accessToken: 't', user: { role: 'ADMIN' } });
+    return jsonResponse(200, { id: 'u1', role: 'ADMIN' });
+  });
+  await api.login('a@example.test', 'password');
+  assert.throws(() => api.updateEquipmentStatus('e1', '   '), /status is required/);
+  assert.equal(step, 2);
+});
+
 test('reject sends a bounded JSON object only when a reason exists', async () => {
   const requests = [];
   let step = 0;
