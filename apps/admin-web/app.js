@@ -19,6 +19,14 @@ const portalMessage = byId('portal-message');
 const bookingsTable = byId('bookings-table');
 const bookingsBody = byId('bookings-body');
 const emptyState = byId('empty-state');
+const equipmentSearch = byId('equipment-search');
+const equipmentCategory = byId('equipment-category');
+const equipmentStatus = byId('equipment-status');
+const equipmentClear = byId('equipment-clear');
+const equipmentCount = byId('equipment-count');
+const equipmentTable = byId('equipment-table');
+const equipmentBody = byId('equipment-body');
+const equipmentEmpty = byId('equipment-empty');
 const rejectDialog = byId('reject-dialog');
 const rejectForm = byId('reject-form');
 const rejectReason = byId('reject-reason');
@@ -28,6 +36,8 @@ const rejectCancel = byId('reject-cancel');
 const rejectConfirm = byId('reject-confirm');
 
 let rejectTarget = null;
+let equipmentSearchTimer = null;
+let equipmentRequestId = 0;
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -56,6 +66,20 @@ logoutButton.addEventListener('click', () => logout());
 refreshButton.addEventListener('click', () => loadPortal());
 rejectCancel.addEventListener('click', () => closeRejectDialog());
 rejectDialog.addEventListener('cancel', () => closeRejectDialog());
+
+equipmentSearch.addEventListener('input', () => {
+  globalThis.clearTimeout(equipmentSearchTimer);
+  equipmentSearchTimer = globalThis.setTimeout(() => loadEquipment(), 300);
+});
+equipmentCategory.addEventListener('change', () => loadEquipment());
+equipmentStatus.addEventListener('change', () => loadEquipment());
+equipmentClear.addEventListener('click', () => {
+  equipmentSearch.value = '';
+  equipmentCategory.value = '';
+  equipmentStatus.value = '';
+  equipmentSearch.focus();
+  loadEquipment();
+});
 
 rejectForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -87,6 +111,7 @@ async function loadPortal({ preserveMessage = false } = {}) {
     statActive.textContent = safeNumber(dashboard?.bookings?.active);
     statAvailable.textContent = safeNumber(dashboard?.equipment?.available);
     renderBookings(Array.isArray(bookings) ? bookings : []);
+    await loadEquipment({ preserveMessage: true });
   } catch (error) {
     if (isAuthFailure(error)) {
       logout('Your session is no longer authorized. Please sign in again.');
@@ -94,7 +119,39 @@ async function loadPortal({ preserveMessage = false } = {}) {
     }
     showPortalMessage(messageFor(error), true);
   } finally {
-    setBusy(refreshButton, false, 'Refresh');
+    setBusy(refreshButton, false, 'Refresh all');
+  }
+}
+
+async function loadEquipment({ preserveMessage = false } = {}) {
+  if (!api.hasSession()) return;
+  if (!preserveMessage) hidePortalMessage();
+  const requestId = ++equipmentRequestId;
+  equipmentTable.setAttribute('aria-busy', 'true');
+  equipmentCount.textContent = 'Loading…';
+
+  try {
+    const equipment = await api.equipment({
+      q: equipmentSearch.value,
+      category: equipmentCategory.value,
+      status: equipmentStatus.value,
+    });
+    if (requestId !== equipmentRequestId) return;
+    renderEquipment(Array.isArray(equipment) ? equipment : []);
+  } catch (error) {
+    if (requestId !== equipmentRequestId) return;
+    if (isAuthFailure(error)) {
+      logout('Your session is no longer authorized. Please sign in again.');
+      return;
+    }
+    equipmentBody.replaceChildren();
+    equipmentTable.hidden = true;
+    equipmentEmpty.hidden = false;
+    equipmentEmpty.textContent = 'Equipment inventory could not be loaded.';
+    equipmentCount.textContent = '— resources';
+    showPortalMessage(messageFor(error), true);
+  } finally {
+    if (requestId === equipmentRequestId) equipmentTable.removeAttribute('aria-busy');
   }
 }
 
@@ -121,6 +178,35 @@ function renderBookings(bookings) {
     );
     bookingsBody.append(row);
   }
+}
+
+function renderEquipment(equipment) {
+  equipmentBody.replaceChildren();
+  equipmentTable.hidden = equipment.length === 0;
+  equipmentEmpty.hidden = equipment.length !== 0;
+  equipmentEmpty.textContent = 'No equipment matches these filters.';
+  equipmentCount.textContent = `${equipment.length} ${equipment.length === 1 ? 'resource' : 'resources'}`;
+
+  for (const item of equipment) {
+    const row = document.createElement('tr');
+    const statusCell = document.createElement('td');
+    statusCell.append(statusBadge(item?.status));
+    row.append(
+      stackCell(item?.name || 'Unnamed resource', item?.inventoryTag || 'No inventory tag'),
+      textCell(humanizeRole(item?.category || 'Unknown')),
+      textCell(item?.location || 'University campus'),
+      statusCell,
+    );
+    equipmentBody.append(row);
+  }
+}
+
+function statusBadge(value) {
+  const normalized = String(value || 'UNKNOWN').toUpperCase();
+  const badge = document.createElement('span');
+  badge.className = `status-badge status-${normalized.toLowerCase().replaceAll('_', '-')}`;
+  badge.textContent = humanizeRole(normalized);
+  return badge;
 }
 
 function actionCell(booking) {
@@ -179,9 +265,19 @@ function closeRejectDialog() {
 
 function logout(message = '') {
   api.clearSession();
+  globalThis.clearTimeout(equipmentSearchTimer);
+  equipmentRequestId += 1;
   portalView.hidden = true;
   loginView.hidden = false;
   bookingsBody.replaceChildren();
+  equipmentBody.replaceChildren();
+  bookingsTable.hidden = true;
+  equipmentTable.hidden = true;
+  equipmentEmpty.hidden = true;
+  equipmentCount.textContent = '— resources';
+  equipmentSearch.value = '';
+  equipmentCategory.value = '';
+  equipmentStatus.value = '';
   statPending.textContent = '—';
   statActive.textContent = '—';
   statAvailable.textContent = '—';
